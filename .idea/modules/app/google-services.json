@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "753804423392",
+    "firebase_url": "https://tracker-640d3.firebaseio.com",
+    "project_id": "tracker-640d3",
+    "storage_bucket": "tracker-640d3.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:753804423392:android:fd543d97affabe07222085",
+        "android_client_info": {
+          "package_name": "com.example.childtracking"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "753804423392-b0aj46620b8ubsuancu7r1ep8ltqdq8g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.childtracking",
+            "certificate_hash": "473702043ea719e0bae7e5e4c45c9a787e845060"
+          }
+        },
+        {
+          "client_id": "753804423392-scrp56btveg5kf2tjrlk56ldijp719tr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6ag52Gu7iB9iPvOaEVCCGqPVIHyEQ7KE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "753804423392-scrp56btveg5kf2tjrlk56ldijp719tr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
