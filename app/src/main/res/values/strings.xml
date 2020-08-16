@@ -2,4 +2,5 @@
     <string name="app_name">Child Tracking</string>
     <string name="title_activity_live_location">Map</string>
     <string name="title_activity_test">Map</string>
+    <string name="action_settings">Settings</string>
 </resources>
