@@ -88,6 +88,8 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     LatLng dest = new LatLng(9.6615, 80.0255);
     ProgressDialog progressDialog;
 
+    LocationHelper locationHelper;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,11 +103,11 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        drawPolylines();
+
     }
 
 
-    private void drawPolylines() {
+    private void drawPolylines(LatLng origin, LatLng dest) {
         progressDialog = new ProgressDialog(LiveLocation.this);
         progressDialog.setMessage("Please Wait, Polyline between two locations is building.");
         progressDialog.setCancelable(false);
@@ -182,10 +184,22 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             mMap.setMyLocationEnabled(true);
         }
 
+    readData(new firebaseCallback() {
+        @Override
+        public void onCallback(double longitude, double latitude) {
+            locationHelper = new LocationHelper(longitude,latitude);
+            System.out.println("Look her"+ locationHelper.getLatitude());
+        }
+    });
+
+    }
+
+    private void readData(firebaseCallback firebaseCallback){
         DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Current Location");
         ValueEventListener listener = databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+
                 Double latitude = dataSnapshot.child("Lat").getValue(Double.class);
                 Double longitude = dataSnapshot.child("Lag").getValue(Double.class);
 
@@ -193,6 +207,9 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
                 mMap.addMarker(new MarkerOptions().position(location).title("Child Location"));
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location,14F));
+
+                firebaseCallback.onCallback(longitude,latitude);
+
             }
 
             @Override
@@ -200,7 +217,10 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
             }
         });
+    }
 
+    private interface firebaseCallback{
+        void onCallback(double longitude, double latitude);
     }
 
     private class DownloadTask extends AsyncTask<String, Void, String> {
@@ -452,6 +472,14 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient,
                     this);
         }
+
+        readData(new firebaseCallback() {
+            @Override
+            public void onCallback(double longitude, double latitude) {
+                LatLng latLng1 = new LatLng(latitude, longitude);
+                drawPolylines(latLng, latLng1);
+            }
+        });
     }
 
     public boolean checkLocationPermission() {
