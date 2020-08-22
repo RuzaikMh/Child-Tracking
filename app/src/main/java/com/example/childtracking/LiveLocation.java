@@ -6,14 +6,23 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
+import android.app.PendingIntent;
+import android.graphics.Color;
 import android.os.Bundle;
 
+import com.google.android.gms.location.Geofence;
+import com.google.android.gms.location.GeofencingClient;
+import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -30,7 +39,9 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
+import android.util.Log;
 import android.widget.Toast;
+
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -38,6 +49,7 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Marker;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -45,21 +57,25 @@ import java.util.Locale;
 
 import android.app.ProgressDialog;
 
-public class LiveLocation extends FragmentActivity implements OnMapReadyCallback,GoogleApiClient.ConnectionCallbacks,
+public class LiveLocation extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        LocationListener {
+        LocationListener, GoogleMap.OnMapLongClickListener {
 
+    private static final String TAG = "LiveLocation";
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
     Marker mCurrLocationMarker;
     LocationRequest mLocationRequest;
     private GoogleMap mMap;
-    SupportMapFragment mapFragment;
-    LatLng origin = new LatLng(7.2906, 80.6337);
-    LatLng dest = new LatLng(9.6615, 80.0255);
-    ProgressDialog progressDialog;
-    Marker marker;
+    Marker marker, marker2;
+    Circle circle;
+    private GeofencingClient geofencingClient;
+    private GeofenceHelper geofenceHelper;
+    private float GEOFENCE_RADIUS = 200;
+    private String GEOFENCE_ID = "SOME_GEOFENCE_ID";
+    Location temp1;
+    GeofenceBroadcastReceiver geofenceBroadcastReceiver = new GeofenceBroadcastReceiver();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,17 +91,10 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        geofencingClient = LocationServices.getGeofencingClient(this);
+        geofenceHelper = new GeofenceHelper(this);
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -109,6 +118,22 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             mMap.setMyLocationEnabled(true);
         }
 
+        readData(new firebaseCallback() {
+            @Override
+            public void onCallback(double longitude, double latitude) {
+
+            }
+        });
+
+        mMap.setOnMapLongClickListener(this);
+
+    }
+
+    private interface firebaseCallback{
+        void onCallback(double longitude, double latitude);
+    }
+
+    private void readData(final firebaseCallback firebaseCallback){
         DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Current Location");
         ValueEventListener listener = databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
@@ -116,24 +141,22 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                 Double latitude = dataSnapshot.child("Lat").getValue(Double.class);
                 Double longitude = dataSnapshot.child("Lag").getValue(Double.class);
 
-                LatLng location =  new LatLng(latitude,longitude);
+                LatLng location = new LatLng(latitude, longitude);
                 if (marker != null) {
                     marker.remove();
                 }
-                marker  = mMap.addMarker(new MarkerOptions().position(location).title("Child Location"));
+                marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location"));
 
+                firebaseCallback.onCallback(longitude,latitude);
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
 
             }
         });
-
     }
 
 
-    //////////////////////////////
 
     protected synchronized void buildGoogleApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -262,5 +285,93 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                 return;
             }
         }
+    }
+
+    @Override
+    public void onMapLongClick(LatLng latLng) {
+        if (marker2 != null) {
+            marker2.remove();
+        }
+        if (circle != null) {
+            circle.remove();
+        }
+        temp1 = new Location(LocationManager.GPS_PROVIDER);
+        temp1.setLatitude(latLng.latitude);
+        temp1.setLongitude(latLng.longitude);
+
+        addMarker(latLng);
+        addCircle(latLng, GEOFENCE_RADIUS);
+        addGeofence(latLng, GEOFENCE_RADIUS);
+        readData(new firebaseCallback() {
+            @Override
+            public void onCallback(double longitude, double latitude) {
+                Location temp = new Location(LocationManager.GPS_PROVIDER);
+                temp.setLatitude(latitude);
+                temp.setLongitude(longitude);
+
+
+
+                final float distanceFromCenter = temp.distanceTo(temp1);
+
+                if (distanceFromCenter <= GEOFENCE_RADIUS) {
+                    // you are inside your geofence
+                    Toast.makeText(LiveLocation.this, "Entered from Geofence...", Toast.LENGTH_SHORT).show();
+
+                }
+                else if(distanceFromCenter > GEOFENCE_RADIUS){
+                    Toast.makeText(LiveLocation.this, "Exited from Geofence...", Toast.LENGTH_SHORT).show();
+                }
+
+            }
+        });
+
+
+    }
+
+    private void addGeofence(LatLng latLng, float radius) {
+        Geofence geofence = geofenceHelper.getGeofence(GEOFENCE_ID, latLng, radius, Geofence.GEOFENCE_TRANSITION_ENTER
+                | Geofence.GEOFENCE_TRANSITION_DWELL | Geofence.GEOFENCE_TRANSITION_EXIT);
+        GeofencingRequest geofencingRequest = geofenceHelper.geofencingRequest(geofence);
+        PendingIntent pendingIntent = geofenceHelper.getPendingIntent();
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        geofencingClient.addGeofences(geofencingRequest, pendingIntent)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d(TAG, "onSuccess: Geofence Added....");
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        String errorMessage = geofenceHelper.getErrorString(e);
+                        Log.d(TAG, "onFailure: " + errorMessage);
+                    }
+                });
+    }
+
+    private void addMarker(LatLng latLng){
+        MarkerOptions markerOptions = new MarkerOptions().position(latLng);
+        marker2 = mMap.addMarker(markerOptions);
+    }
+
+    private void addCircle(LatLng latLng, float radius){
+        CircleOptions circleOptions = new CircleOptions();
+        circleOptions.center(latLng);
+        circleOptions.radius(radius);
+        circleOptions.strokeColor(Color.argb(255,255,0,0));
+        circleOptions.fillColor(Color.argb(64,255,0,0));
+        circleOptions.strokeColor(4);
+        circle = mMap.addCircle(circleOptions);
     }
 }
