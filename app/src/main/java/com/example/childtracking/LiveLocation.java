@@ -3,13 +3,24 @@ package com.example.childtracking;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
+import com.firebase.geofire.GeoQuery;
+import com.firebase.geofire.GeoQueryDataEventListener;
+import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingClient;
 import com.google.android.gms.location.GeofencingRequest;
@@ -51,15 +62,17 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Marker;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 
 
 import android.app.ProgressDialog;
 
 public class LiveLocation extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        LocationListener, GoogleMap.OnMapLongClickListener {
+        LocationListener, GoogleMap.OnMapLongClickListener,GeoQueryEventListener {
 
     private static final String TAG = "LiveLocation";
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
@@ -75,7 +88,9 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     private float GEOFENCE_RADIUS = 200;
     private String GEOFENCE_ID = "SOME_GEOFENCE_ID";
     Location temp1;
-    GeofenceBroadcastReceiver geofenceBroadcastReceiver = new GeofenceBroadcastReceiver();
+    private GeoFire geoFire;
+    public List<LatLng> dangerousArea = new ArrayList<>();
+    private DatabaseReference myLocationRef;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +108,8 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
         geofencingClient = LocationServices.getGeofencingClient(this);
         geofenceHelper = new GeofenceHelper(this);
+        settingGeoFire();
+
     }
 
     @Override
@@ -125,8 +142,67 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        mMap.setOnMapLongClickListener(this);
 
+        mMap.setOnMapLongClickListener(this);
+    }
+
+
+    @Override
+    public void onKeyEntered(String key, GeoLocation location) {
+        sendNotification("Child",String.format("%s entered the dangerous area",key));
+    }
+
+    @Override
+    public void onKeyExited(String key) {
+        sendNotification("Child",String.format("%s leaved the dangerous area",key));
+    }
+
+    @Override
+    public void onKeyMoved(String key, GeoLocation location) {
+        sendNotification("Child",String.format("%s move within the dangerous area",key));
+    }
+
+    @Override
+    public void onGeoQueryReady() {
+    
+    }
+
+    @Override
+    public void onGeoQueryError(DatabaseError error) {
+        Toast.makeText(geofenceHelper, ""+error.getMessage(), Toast.LENGTH_SHORT).show();
+    }
+
+    private void settingGeoFire(){
+        myLocationRef = FirebaseDatabase.getInstance().getReference("Current Location");
+        geoFire = new GeoFire(myLocationRef);
+    }
+
+    private void sendNotification(String title, String content) {
+        Toast.makeText(this,""+content,Toast.LENGTH_SHORT).show();
+        
+        String NOTIFICATION_CHANNEL_ID = "Child Tracking";
+        NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,"My notification",
+                    NotificationManager.IMPORTANCE_DEFAULT);
+
+            notificationChannel.setDescription("Channel description");
+            notificationChannel.enableLights(true);
+            notificationChannel.setLightColor(Color.RED);
+            notificationChannel.setVibrationPattern(new long[] {0,1000,500,1000});
+            notificationChannel.enableVibration(true);
+            notificationManager.createNotificationChannel(notificationChannel);
+        }
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this,NOTIFICATION_CHANNEL_ID);
+        builder.setContentTitle(title)
+                .setContentText(content)
+                .setAutoCancel(false)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(),R.mipmap.ic_launcher));
+
+        Notification notification = builder.build();
+        notificationManager.notify(new Random().nextInt(),notification);
     }
 
     private interface firebaseCallback{
@@ -148,6 +224,8 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                 marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location"));
 
                 firebaseCallback.onCallback(longitude,latitude);
+
+                geoFire.setLocation("Child", new GeoLocation(latitude,longitude));
             }
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
@@ -287,82 +365,48 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+
     @Override
     public void onMapLongClick(LatLng latLng) {
-        if (marker2 != null) {
-            marker2.remove();
+
+
+
+        dangerousArea.add(new LatLng(latLng.latitude,latLng.longitude));
+
+
+        for(LatLng latLng1 : dangerousArea){
+            addCircle(latLng1,GEOFENCE_RADIUS);
+
+            GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),GEOFENCE_RADIUS);
+            geoQuery.addGeoQueryEventListener(LiveLocation.this);
         }
-        if (circle != null) {
-            circle.remove();
+
+
+        /*
+        for (LatLng latLng1 : dangerousArea) {
+            mMap.addCircle(new CircleOptions().center(latLng1)
+                    .radius(GEOFENCE_RADIUS)
+                    .strokeColor(Color.argb(255, 255, 0, 0))
+                    .fillColor(Color.argb(64, 255, 0, 0))
+                    .strokeColor(4)
+            );
         }
-        temp1 = new Location(LocationManager.GPS_PROVIDER);
-        temp1.setLatitude(latLng.latitude);
-        temp1.setLongitude(latLng.longitude);
-
-        addMarker(latLng);
-        addCircle(latLng, GEOFENCE_RADIUS);
-        addGeofence(latLng, GEOFENCE_RADIUS);
-        readData(new firebaseCallback() {
-            @Override
-            public void onCallback(double longitude, double latitude) {
-                Location temp = new Location(LocationManager.GPS_PROVIDER);
-                temp.setLatitude(latitude);
-                temp.setLongitude(longitude);
+        */
 
 
 
-                final float distanceFromCenter = temp.distanceTo(temp1);
-
-                if (distanceFromCenter <= GEOFENCE_RADIUS) {
-                    // you are inside your geofence
-                    Toast.makeText(LiveLocation.this, "Entered from Geofence...", Toast.LENGTH_SHORT).show();
-
-                }
-                else if(distanceFromCenter > GEOFENCE_RADIUS){
-                    Toast.makeText(LiveLocation.this, "Exited from Geofence...", Toast.LENGTH_SHORT).show();
-                }
-
-            }
-        });
 
 
-    }
 
-    private void addGeofence(LatLng latLng, float radius) {
-        Geofence geofence = geofenceHelper.getGeofence(GEOFENCE_ID, latLng, radius, Geofence.GEOFENCE_TRANSITION_ENTER
-                | Geofence.GEOFENCE_TRANSITION_DWELL | Geofence.GEOFENCE_TRANSITION_EXIT);
-        GeofencingRequest geofencingRequest = geofenceHelper.geofencingRequest(geofence);
-        PendingIntent pendingIntent = geofenceHelper.getPendingIntent();
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-        geofencingClient.addGeofences(geofencingRequest, pendingIntent)
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Log.d(TAG, "onSuccess: Geofence Added....");
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        String errorMessage = geofenceHelper.getErrorString(e);
-                        Log.d(TAG, "onFailure: " + errorMessage);
-                    }
-                });
     }
 
     private void addMarker(LatLng latLng){
+       /*
         MarkerOptions markerOptions = new MarkerOptions().position(latLng);
         marker2 = mMap.addMarker(markerOptions);
+
+        */
+
     }
 
     private void addCircle(LatLng latLng, float radius){
