@@ -32,8 +32,10 @@ import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -72,7 +74,7 @@ import android.app.ProgressDialog;
 
 public class LiveLocation extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        LocationListener, GoogleMap.OnMapLongClickListener,GeoQueryEventListener {
+        LocationListener, GoogleMap.OnMapLongClickListener, GeoQueryEventListener, IOnLoadLocationListener {
 
     private static final String TAG = "LiveLocation";
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
@@ -90,7 +92,9 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     Location temp1;
     private GeoFire geoFire;
     public List<LatLng> dangerousArea = new ArrayList<>();
+    public List<LatLng> saveLocation = new ArrayList<>();
     private DatabaseReference myLocationRef;
+    private IOnLoadLocationListener listener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -144,6 +148,28 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
 
         mMap.setOnMapLongClickListener(this);
+        listener = this;
+        FirebaseDatabase.getInstance()
+                .getReference("DangerousArea")
+                .child("Locations")
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        List<MyLatLng> latLngList = new ArrayList<>();
+                        for(DataSnapshot locationSnapshot : snapshot.getChildren())
+                        {
+                            MyLatLng latLng = locationSnapshot.getValue(MyLatLng.class);
+                            latLngList.add(latLng);
+
+                        }
+                        listener.onLoadLocationSuccess(latLngList);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        listener.onLocationFailed(error.getMessage());
+                    }
+                });
     }
 
 
@@ -205,6 +231,28 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         notificationManager.notify(new Random().nextInt(),notification);
     }
 
+    @Override
+    public void onLoadLocationSuccess(List<MyLatLng> latLngs) {
+        dangerousArea = new ArrayList<>();
+        for(MyLatLng myLatLng : latLngs)
+        {
+            LatLng convert = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
+            dangerousArea.add(convert);
+        }
+
+        for(LatLng latLng1 : dangerousArea){
+            addCircle(latLng1,GEOFENCE_RADIUS);
+
+            GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),0.2);
+            geoQuery.addGeoQueryEventListener(LiveLocation.this);
+        }
+    }
+
+    @Override
+    public void onLocationFailed(String message) {
+        Toast.makeText(this, ""+message, Toast.LENGTH_SHORT).show();
+    }
+
     private interface firebaseCallback{
         void onCallback(double longitude, double latitude);
     }
@@ -223,9 +271,12 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                 }
                 marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location"));
 
+                geoFire.setLocation("Child", new GeoLocation(latitude,longitude));
+
                 firebaseCallback.onCallback(longitude,latitude);
 
-                geoFire.setLocation("Child", new GeoLocation(latitude,longitude));
+
+
             }
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
@@ -371,15 +422,27 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
 
 
-        dangerousArea.add(new LatLng(latLng.latitude,latLng.longitude));
+        saveLocation.add(new LatLng(latLng.latitude,latLng.longitude));
 
 
-        for(LatLng latLng1 : dangerousArea){
-            addCircle(latLng1,GEOFENCE_RADIUS);
 
-            GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),GEOFENCE_RADIUS);
-            geoQuery.addGeoQueryEventListener(LiveLocation.this);
-        }
+        FirebaseDatabase.getInstance()
+                .getReference("DangerousArea")
+                .child("Locations")
+                .setValue(saveLocation)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        Toast.makeText(LiveLocation.this, "Geo-fence Added!", Toast.LENGTH_SHORT).show();
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(LiveLocation.this, ""+e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
 
 
         /*
