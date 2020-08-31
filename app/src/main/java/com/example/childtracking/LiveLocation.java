@@ -85,6 +85,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     Marker marker, marker2;
     Circle circle;
+    List<Circle> geoCircle;
     private GeofencingClient geofencingClient;
     private GeofenceHelper geofenceHelper;
     private float GEOFENCE_RADIUS = 200;
@@ -95,6 +96,8 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     public List<LatLng> saveLocation = new ArrayList<>();
     private DatabaseReference myLocationRef;
     private IOnLoadLocationListener listener;
+    GeoQuery geoQuery;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -170,6 +173,8 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                         listener.onLocationFailed(error.getMessage());
                     }
                 });
+
+        
     }
 
 
@@ -240,10 +245,17 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             dangerousArea.add(convert);
         }
 
+        if(geoQuery != null){
+            geoQuery.removeAllListeners();
+        }
+
+        if(geoCircle != null) {
+            deleteCircle();
+        }
         for(LatLng latLng1 : dangerousArea){
             addCircle(latLng1,GEOFENCE_RADIUS);
 
-            GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),0.2);
+            geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),0.2);
             geoQuery.addGeoQueryEventListener(LiveLocation.this);
         }
     }
@@ -274,9 +286,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                 geoFire.setLocation("Child", new GeoLocation(latitude,longitude));
 
                 firebaseCallback.onCallback(longitude,latitude);
-
-
-
             }
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
@@ -423,13 +432,14 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
 
         saveLocation.add(new LatLng(latLng.latitude,latLng.longitude));
-
+        LatLng mine = new LatLng(latLng.latitude,latLng.longitude);
 
 
         FirebaseDatabase.getInstance()
                 .getReference("DangerousArea")
                 .child("Locations")
-                .setValue(saveLocation)
+                .push()
+                .setValue(mine)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
@@ -442,37 +452,23 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-
-
-
-        /*
-        for (LatLng latLng1 : dangerousArea) {
-            mMap.addCircle(new CircleOptions().center(latLng1)
-                    .radius(GEOFENCE_RADIUS)
-                    .strokeColor(Color.argb(255, 255, 0, 0))
-                    .fillColor(Color.argb(64, 255, 0, 0))
-                    .strokeColor(4)
-            );
-        }
-        */
-
-
-
-
-
-
     }
 
-    private void addMarker(LatLng latLng){
-       /*
-        MarkerOptions markerOptions = new MarkerOptions().position(latLng);
-        marker2 = mMap.addMarker(markerOptions);
+    public void deleteCircle(){
 
-        */
-
+        for(int i = 0 ; i <= geoCircle.size() - 1 ; i++){
+            Circle mCircle = geoCircle.get(i);
+            mCircle.remove();
+        }
+        geoCircle.clear();
     }
 
     private void addCircle(LatLng latLng, float radius){
+
+        if(geoCircle == null){
+            geoCircle = new ArrayList<>();
+        }
+
         CircleOptions circleOptions = new CircleOptions();
         circleOptions.center(latLng);
         circleOptions.radius(radius);
@@ -480,5 +476,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         circleOptions.fillColor(Color.argb(64,255,0,0));
         circleOptions.strokeColor(4);
         circle = mMap.addCircle(circleOptions);
+        geoCircle.add(circle);
     }
 }
