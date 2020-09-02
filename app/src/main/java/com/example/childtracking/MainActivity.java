@@ -18,4 +18,8 @@ public class MainActivity extends AppCompatActivity {
         startActivity(new Intent(getApplicationContext(),LiveLocation.class));
     }
 
+    public void btnGeoFence(View view){
+        startActivity(new Intent(getApplicationContext(),GetGeofence.class));
+    }
+
 }

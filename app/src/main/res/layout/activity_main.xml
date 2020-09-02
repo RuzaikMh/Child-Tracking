@@ -33,6 +33,7 @@
             android:id="@+id/button2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:onClick="btnGeoFence"
             android:text="Geo-Fence "
             tools:layout_editor_absoluteX="144dp"
             tools:layout_editor_absoluteY="33dp" />
