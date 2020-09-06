@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.maps.model.LatLng;
