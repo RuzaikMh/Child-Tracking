@@ -5,9 +5,12 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
+import androidx.preference.PreferenceManager;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -46,6 +49,7 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -89,6 +93,9 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     private IOnLoadLocationListener listener;
     GeoQuery geoQuery;
     SupportMapFragment mapFragment;
+    String radiusMeter;
+    String syncInterval;
+    double radius;
 
 
     @Override
@@ -108,6 +115,10 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
         settingGeoFire();
 
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        radiusMeter = sharedPreferences.getString("radiusMeters","0.2");
+        GEOFENCE_RADIUS = Float.parseFloat(radiusMeter) * 1000;
+        radius = Double.parseDouble(radiusMeter);
     }
 
     @Override
@@ -123,9 +134,13 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         mCustomButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                readData(new firebaseCallback() {
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Current Location");
+                databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
-                    public void onCallback(double longitude, double latitude) {
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        Double latitude = snapshot.child("Lat").getValue(Double.class);
+                        Double longitude = snapshot.child("Lag").getValue(Double.class);
+
                         CameraPosition position = new CameraPosition.Builder()
                                 .target(new LatLng(latitude,longitude)) // Sets the new camera position
                                 .zoom(17) // Sets the zoom
@@ -135,6 +150,11 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
                         mMap.animateCamera(CameraUpdateFactory
                                 .newCameraPosition(position), 3000,null);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+
                     }
                 });
             }
@@ -309,8 +329,9 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         for(LatLng latLng1 : dangerousArea){
             addCircle(latLng1,GEOFENCE_RADIUS);
 
-            geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),0.2);
+            geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),radius);
             geoQuery.addGeoQueryEventListener(LiveLocation.this);
+            Log.d(TAG, "onLoadLocationSuccess: loool"+GEOFENCE_RADIUS+"  "+radius);
         }
     }
 

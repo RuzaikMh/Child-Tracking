@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="Location sync information">
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="perform_sync"
+            android:summary="Enable or disable tracker location data Synchronization"
+            android:title="Enable Location update" />
+        <ListPreference
+            android:defaultValue="@string/default_interval"
+            android:dependency="perform_sync"
+            android:entries="@array/updateInterval"
+            android:entryValues="@array/updateIntervalValues"
+            android:key="sync_interval"
+            android:summary="Define how often location update perform"
+            android:title="Location Update Interval" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Geo-Fence">
+
+        <ListPreference
+            android:defaultValue="@string/default_radius"
+            android:entries="@array/radius"
+            android:entryValues="@array/radiusValues"
+            android:key="radiusMeters"
+            android:summary="Define radius of the circle"
+            android:title="Radius" />
+    </PreferenceCategory>
+</PreferenceScreen>

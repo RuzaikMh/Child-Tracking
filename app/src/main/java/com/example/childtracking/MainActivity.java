@@ -2,9 +2,13 @@ package com.example.childtracking;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.PreferenceManager;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
@@ -17,6 +21,7 @@ import com.google.firebase.database.ValueEventListener;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "MainActivity";
     ToggleButton toggleButton;
 
     @Override
@@ -50,6 +55,10 @@ public class MainActivity extends AppCompatActivity {
         startActivity(new Intent(getApplicationContext(),GetGeofence.class));
     }
 
+    public void btnSetting(View view){
+        startActivity(new Intent(getApplicationContext(),SettingsActivity.class));
+    }
+
     public void logout(View view) {
         FirebaseAuth.getInstance().signOut();
         startActivity(new Intent(getApplicationContext(),Login.class));
@@ -73,5 +82,31 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    public void onResume() {
+
+        super.onResume();
+
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        String syncInterval = sharedPreferences.getString("sync_interval","5000");
+        double interval =  Double.parseDouble(syncInterval);
+        boolean syncLocation = sharedPreferences.getBoolean("perform_sync",true);
+
+        FirebaseDatabase.getInstance()
+                .getReference("Alert")
+                .child("Interval")
+                .setValue(interval);
+        if(syncLocation == true) {
+            FirebaseDatabase.getInstance()
+                    .getReference("Alert")
+                    .child("Sync")
+                    .setValue(1);
+        }else{
+            FirebaseDatabase.getInstance()
+                    .getReference("Alert")
+                    .child("Sync")
+                    .setValue(0);
+        }
     }
 }
