@@ -59,6 +59,10 @@ public class MainActivity extends AppCompatActivity {
         startActivity(new Intent(getApplicationContext(),SettingsActivity.class));
     }
 
+    public void btnBLE(View view){
+        startActivity(new Intent(getApplicationContext(),BLE_main.class));
+    }
+
     public void logout(View view) {
         FirebaseAuth.getInstance().signOut();
         startActivity(new Intent(getApplicationContext(),Login.class));

@@ -20,4 +20,5 @@
     <string name="attachment_summary_off">Only download attachments when manually requested</string>
     <string name="default_interval">5000</string>
     <string name="default_radius">0.2</string>
+    <string name="CLIENT_CHARACTERISTIC_CONFIG">00002902-0000-1000-8000-00805f9b34fb"</string>
 </resources>

@@ -84,7 +84,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     Marker marker;
     Circle circle;
     private List<Circle> geoCircle;
-    private GeofencingClient geofencingClient;
     private float GEOFENCE_RADIUS = 200;
     private GeoFire geoFire;
     public List<LatLng> dangerousArea = new ArrayList<>();
@@ -181,6 +180,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
 
         mMap.setOnMapLongClickListener(this);
+
         listener = this;
         FirebaseDatabase.getInstance()
                 .getReference("DangerousArea")
@@ -188,6 +188,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        //update the dangerous area list
                         List<MyLatLng> latLngList = new ArrayList<>();
                         for(DataSnapshot locationSnapshot : snapshot.getChildren())
                         {
@@ -206,50 +207,35 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-    void setConrolsPositions() {
-        try {
-            // get parent view for default Google Maps control button
-            final ViewGroup parent = (ViewGroup) mapFragment.getView().findViewWithTag("GoogleMapMyLocationButton").getParent();
-            parent.post(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        // get view for default Google Maps control button
-                        View defaultButton = mapFragment.getView().findViewWithTag("GoogleMapMyLocationButton");
-
-                        // remove custom button view from activity root layout
-                        ViewGroup customButtonParent = (ViewGroup) mCustomButton.getParent();
-                        customButtonParent.removeView(mCustomButton);
-
-                        // add custom button view to Google Maps control button parent
-                        ViewGroup defaultButtonParent = (ViewGroup) defaultButton.getParent();
-                        defaultButtonParent.addView(mCustomButton);
-
-                        // create layout with same size as default Google Maps control button
-                        RelativeLayout.LayoutParams customButtonLayoutParams = new RelativeLayout.LayoutParams(defaultButton.getHeight(), defaultButton.getHeight());
-
-                        // align custom button view layout relative to defaultButton
-                        customButtonLayoutParams.addRule(RelativeLayout.ALIGN_LEFT, defaultButton.getId());
-                        customButtonLayoutParams.addRule(RelativeLayout.BELOW, defaultButton.getId());
-
-                        // add other settings (optional)
-                        mCustomButton.setAlpha(defaultButton.getAlpha());
-                        mCustomButton.setPadding(defaultButton.getPaddingLeft(), defaultButton.getPaddingTop(),
-                                defaultButton.getPaddingRight(), defaultButton.getPaddingBottom());
-
-                        // apply layout settings to custom button view
-                        mCustomButton.setLayoutParams(customButtonLayoutParams);
-                        mCustomButton.setVisibility(View.VISIBLE);
-
-
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                    }
-                }
-            });
-        } catch (Exception ex) {
-            ex.printStackTrace();
+    @Override
+    public void onLoadLocationSuccess(List<MyLatLng> latLngs) {
+        dangerousArea = new ArrayList<>();
+        for(MyLatLng myLatLng : latLngs)
+        {
+            LatLng convert = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
+            dangerousArea.add(convert);
         }
+
+        if(geoQuery != null){
+            geoQuery.removeAllListeners();
+        }
+
+        if(geoCircle != null) {
+            deleteCircle();
+        }
+        for(LatLng latLng1 : dangerousArea){
+            addCircle(latLng1,GEOFENCE_RADIUS);
+
+            // creates a new query around the location
+            geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),radius);
+            geoQuery.addGeoQueryEventListener(LiveLocation.this);
+            Log.d(TAG, "onLoadLocationSuccess: Ruzaik"+GEOFENCE_RADIUS+"  "+radius);
+        }
+    }
+
+    @Override
+    public void onLocationFailed(String message) {
+        Toast.makeText(this, ""+message, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -310,36 +296,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         notificationManager.notify(new Random().nextInt(),notification);
     }
 
-    @Override
-    public void onLoadLocationSuccess(List<MyLatLng> latLngs) {
-        dangerousArea = new ArrayList<>();
-        for(MyLatLng myLatLng : latLngs)
-        {
-            LatLng convert = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
-            dangerousArea.add(convert);
-        }
-
-        if(geoQuery != null){
-            geoQuery.removeAllListeners();
-        }
-
-        if(geoCircle != null) {
-            deleteCircle();
-        }
-        for(LatLng latLng1 : dangerousArea){
-            addCircle(latLng1,GEOFENCE_RADIUS);
-
-            geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),radius);
-            geoQuery.addGeoQueryEventListener(LiveLocation.this);
-            Log.d(TAG, "onLoadLocationSuccess: loool"+GEOFENCE_RADIUS+"  "+radius);
-        }
-    }
-
-    @Override
-    public void onLocationFailed(String message) {
-        Toast.makeText(this, ""+message, Toast.LENGTH_SHORT).show();
-    }
-
     private interface firebaseCallback{
         void onCallback(double longitude, double latitude);
     }
@@ -368,6 +324,100 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
             }
         });
+    }
+
+
+    @Override
+    public void onMapLongClick(LatLng latLng) {
+        LatLng mine = new LatLng(latLng.latitude,latLng.longitude);
+
+        FirebaseDatabase.getInstance()
+                .getReference("DangerousArea")
+                .child("Locations")
+                .push()
+                .setValue(mine)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        Toast.makeText(LiveLocation.this, "Geo-fence Added!", Toast.LENGTH_SHORT).show();
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(LiveLocation.this, ""+e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+    }
+
+    public void deleteCircle(){
+
+        for(int i = 0 ; i <= geoCircle.size() - 1 ; i++){
+            Circle mCircle = geoCircle.get(i);
+            mCircle.remove();
+        }
+        geoCircle.clear();
+    }
+
+    private void addCircle(LatLng latLng, float radius){
+        if(geoCircle == null){
+            geoCircle = new ArrayList<>();
+        }
+
+        CircleOptions circleOptions = new CircleOptions();
+        circleOptions.center(latLng);
+        circleOptions.radius(radius);
+        circleOptions.strokeColor(Color.argb(255,255,0,0));
+        circleOptions.fillColor(Color.argb(64,255,0,0));
+        circleOptions.strokeColor(4);
+        circle = mMap.addCircle(circleOptions);
+        geoCircle.add(circle);
+    }
+
+    void setConrolsPositions() {
+        try {
+            // get parent view for default Google Maps control button
+            final ViewGroup parent = (ViewGroup) mapFragment.getView().findViewWithTag("GoogleMapMyLocationButton").getParent();
+            parent.post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        // get view for default Google Maps control button
+                        View defaultButton = mapFragment.getView().findViewWithTag("GoogleMapMyLocationButton");
+
+                        // remove custom button view from activity root layout
+                        ViewGroup customButtonParent = (ViewGroup) mCustomButton.getParent();
+                        customButtonParent.removeView(mCustomButton);
+
+                        // add custom button view to Google Maps control button parent
+                        ViewGroup defaultButtonParent = (ViewGroup) defaultButton.getParent();
+                        defaultButtonParent.addView(mCustomButton);
+
+                        // create layout with same size as default Google Maps control button
+                        RelativeLayout.LayoutParams customButtonLayoutParams = new RelativeLayout.LayoutParams(defaultButton.getHeight(), defaultButton.getHeight());
+
+                        // align custom button view layout relative to defaultButton
+                        customButtonLayoutParams.addRule(RelativeLayout.ALIGN_LEFT, defaultButton.getId());
+                        customButtonLayoutParams.addRule(RelativeLayout.BELOW, defaultButton.getId());
+
+                        // add other settings (optional)
+                        mCustomButton.setAlpha(defaultButton.getAlpha());
+                        mCustomButton.setPadding(defaultButton.getPaddingLeft(), defaultButton.getPaddingTop(),
+                                defaultButton.getPaddingRight(), defaultButton.getPaddingBottom());
+
+                        // apply layout settings to custom button view
+                        mCustomButton.setLayoutParams(customButtonLayoutParams);
+                        mCustomButton.setVisibility(View.VISIBLE);
+
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            });
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     private BitmapDescriptor bitmapDescriptor(Context context, int vectorResId){
@@ -509,51 +559,5 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    @Override
-    public void onMapLongClick(LatLng latLng) {
-        saveLocation.add(new LatLng(latLng.latitude,latLng.longitude));
-        LatLng mine = new LatLng(latLng.latitude,latLng.longitude);
 
-        FirebaseDatabase.getInstance()
-                .getReference("DangerousArea")
-                .child("Locations")
-                .push()
-                .setValue(mine)
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        Toast.makeText(LiveLocation.this, "Geo-fence Added!", Toast.LENGTH_SHORT).show();
-                    }
-                }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(LiveLocation.this, ""+e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-
-    }
-
-    public void deleteCircle(){
-
-        for(int i = 0 ; i <= geoCircle.size() - 1 ; i++){
-            Circle mCircle = geoCircle.get(i);
-            mCircle.remove();
-        }
-        geoCircle.clear();
-    }
-
-    private void addCircle(LatLng latLng, float radius){
-        if(geoCircle == null){
-            geoCircle = new ArrayList<>();
-        }
-
-        CircleOptions circleOptions = new CircleOptions();
-        circleOptions.center(latLng);
-        circleOptions.radius(radius);
-        circleOptions.strokeColor(Color.argb(255,255,0,0));
-        circleOptions.fillColor(Color.argb(64,255,0,0));
-        circleOptions.strokeColor(4);
-        circle = mMap.addCircle(circleOptions);
-        geoCircle.add(circle);
-    }
 }
