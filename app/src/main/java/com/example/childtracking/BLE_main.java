@@ -9,12 +9,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.ParcelUuid;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ScrollView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,7 +45,7 @@ public class BLE_main extends AppCompatActivity implements View.OnClickListener,
         }
 
         mBTStateUpdateReceiver = new BroadcastReceiver_BTState(getApplicationContext());
-        mBTLeScanner = new Scanner_BTLE(this, 30000, -75);
+        mBTLeScanner = new Scanner_BTLE(this, 90000, -75);
 
         mBTDevicesHashMap = new HashMap<>();
         mBTDevicesArrayList = new ArrayList<>();
@@ -158,15 +158,18 @@ public class BLE_main extends AppCompatActivity implements View.OnClickListener,
     public void addDevice(BluetoothDevice device, int rssi) {
 
         String address = device.getAddress();
+        BTLE_Device btleDevice = new BTLE_Device(device);
         if (!mBTDevicesHashMap.containsKey(address)) {
-            BTLE_Device btleDevice = new BTLE_Device(device);
+
             btleDevice.setRSSI(rssi);
+            btleDevice.setDistnace(calculateDistance(rssi));
 
             mBTDevicesHashMap.put(address, btleDevice);
             mBTDevicesArrayList.add(btleDevice);
         }
         else {
             mBTDevicesHashMap.get(address).setRSSI(rssi);
+            mBTDevicesHashMap.get(address).setDistnace(calculateDistance(rssi));
         }
 
         adapter.notifyDataSetChanged();
@@ -186,4 +189,23 @@ public class BLE_main extends AppCompatActivity implements View.OnClickListener,
 
         mBTLeScanner.stop();
     }
+
+    public double calculateDistance(int rssi) {
+
+        int txPower = -59; //hard coded power value. Usually ranges between -59 to -65
+
+        if (rssi == 0) {
+            return -1.0;
+        }
+
+        double ratio = rssi*1.0/txPower;
+        if (ratio < 1.0) {
+            return Math.pow(ratio,10);
+        }
+        else {
+            double distance =  (0.89976)*Math.pow(ratio,7.7095) + 0.111;
+            return distance;
+        }
+    }
+
 }

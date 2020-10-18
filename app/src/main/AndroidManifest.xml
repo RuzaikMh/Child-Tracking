@@ -9,7 +9,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".Dialog_BTLE_Characteristic"></activity>
+        <activity android:name=".BLE_Distance"></activity>
+        <activity android:name=".Dialog_BTLE_Characteristic" />
         <activity android:name=".Activity_BTLE_Services" />
         <activity android:name=".BLE_main" />
         <activity android:name=".SplashScreen" />
@@ -59,10 +60,10 @@
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
-
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
 
 </manifest>

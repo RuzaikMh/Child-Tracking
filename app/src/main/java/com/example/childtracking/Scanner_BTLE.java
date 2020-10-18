@@ -3,12 +3,19 @@ package com.example.childtracking;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.os.Handler;
+import android.util.Log;
 
-/**
- * Created by Kelvin on 4/20/16.
- */
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 public class Scanner_BTLE {
 
     private BLE_main ma;
@@ -16,9 +23,11 @@ public class Scanner_BTLE {
     private BluetoothAdapter mBluetoothAdapter;
     private boolean mScanning;
     private Handler mHandler;
-
+    private BluetoothLeScanner mLEScanner;
     private long scanPeriod;
     private int signalStrength;
+    private List<ScanFilter> filters = new ArrayList<>();
+    private static final String TAG = "Scanner";
 
     public Scanner_BTLE(BLE_main mainActivity, long scanPeriod, int signalStrength) {
         ma = mainActivity;
@@ -31,6 +40,7 @@ public class Scanner_BTLE {
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) ma.getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
+        mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
     }
 
     public boolean isScanning() {
@@ -41,8 +51,7 @@ public class Scanner_BTLE {
         if (!Utils.checkBluetooth(mBluetoothAdapter)) {
             Utils.requestUserBluetooth(ma);
             ma.stopScan();
-        }
-        else {
+        } else {
             scanLeDevice(true);
         }
     }
@@ -65,24 +74,33 @@ public class Scanner_BTLE {
                     Utils.toast(ma.getApplicationContext(), "Stopping BLE scan...");
 
                     mScanning = false;
-                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
+
+                    mLEScanner.stopScan(mLeScanCallback);
 
                     ma.stopScan();
                 }
             }, scanPeriod);
 
             mScanning = true;
-            mBluetoothAdapter.startLeScan(mLeScanCallback);
-//            mBluetoothAdapter.startLeScan(uuids, mLeScanCallback);
-        }
-        else {
+            ScanFilter filter = new ScanFilter.Builder().setDeviceName("Child GPS Tracker").build();
+            filters.add(filter);
+            ScanSettings settings = new ScanSettings.Builder()
+                    .setScanMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+                    .build();
+            //UUID[] uuids = new UUID[1];
+            //uuids[0] = UUID.fromString("87b99b2c-90fd-11e9-bc42-526af7764f64");
+            //mBluetoothAdapter.startLeScan(mLeScanCallback);
+            mLEScanner.startScan(filters,settings,mLeScanCallback);
+        } else {
             mScanning = false;
-            mBluetoothAdapter.stopLeScan(mLeScanCallback);
+            mLEScanner.stopScan(mLeScanCallback);
         }
     }
 
+
+
     // Device scan callback.
-    private BluetoothAdapter.LeScanCallback mLeScanCallback =
+  /*  private BluetoothAdapter.LeScanCallback mLeScanCallback =
             new BluetoothAdapter.LeScanCallback() {
 
                 @Override
@@ -99,4 +117,22 @@ public class Scanner_BTLE {
                     }
                 }
             };
+*/
+    private ScanCallback mLeScanCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, final ScanResult result) {
+            super.onScanResult(callbackType, result);
+
+            final int new_rssi = result.getRssi();
+            if (result.getRssi() > signalStrength) {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        ma.addDevice(result.getDevice(), new_rssi);
+                        Log.d(TAG, "run: uuids" + result.getDevice().getName());
+                    }
+                });
+            }
+        }
+    };
 }

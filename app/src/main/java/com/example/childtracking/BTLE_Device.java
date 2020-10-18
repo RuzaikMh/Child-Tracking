@@ -6,6 +6,8 @@ public class BTLE_Device {
 
     private BluetoothDevice bluetoothDevice;
     private int rssi;
+    private String UUID;
+    private double distnace;
 
     public BTLE_Device(BluetoothDevice bluetoothDevice) {
         this.bluetoothDevice = bluetoothDevice;
@@ -25,5 +27,22 @@ public class BTLE_Device {
 
     public int getRSSI() {
         return rssi;
+    }
+
+    public double getDistnace() {
+        return distnace;
+    }
+
+    public void setDistnace(double distnace) {
+        this.distnace = distnace;
+    }
+
+
+    public String getUUID() {
+        return UUID;
+    }
+
+    public void setUUID(String UUID) {
+        this.UUID = UUID;
     }
 }
