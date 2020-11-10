@@ -2,6 +2,7 @@ package com.example.childtracking;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 
 import android.content.Intent;
@@ -28,6 +29,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        //startService(new Intent(this, FirebaseService.class));
+        //startService(new Intent(FirebaseService.class.getName()));
+        Intent serviceIntent = new Intent(this, FirebaseService.class);
+        ContextCompat.startForegroundService(this, serviceIntent);
         toggleButton = (ToggleButton) findViewById(R.id.toggle1);
         getStatus();
         toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -57,6 +62,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void btnSetting(View view){
         startActivity(new Intent(getApplicationContext(),SettingsActivity.class));
+    }
+
+    public void btnStopService(View view){
+        Intent serviceIntent = new Intent(this, FirebaseService.class);
+        stopService(serviceIntent);
     }
 
     public void btnBLE(View view){
