@@ -13,24 +13,33 @@ import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     ToggleButton toggleButton;
+    FirebaseFirestore rootRef;
+    DocumentReference uidRef;
+    String uid,DefaultTracker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //startService(new Intent(this, FirebaseService.class));
-        //startService(new Intent(FirebaseService.class.getName()));
+
+
         Intent serviceIntent = new Intent(this, FirebaseService.class);
         ContextCompat.startForegroundService(this, serviceIntent);
         toggleButton = (ToggleButton) findViewById(R.id.toggle1);
@@ -54,6 +63,10 @@ public class MainActivity extends AppCompatActivity {
 
     public void btnLiveLocation(View view){
         startActivity(new Intent(getApplicationContext(),LiveLocation.class));
+    }
+
+    public void btnAddTracker(View view){
+        startActivity(new Intent(getApplicationContext(),AddTracker.class));
     }
 
     public void btnGeoFence(View view){
@@ -122,5 +135,23 @@ public class MainActivity extends AppCompatActivity {
                     .child("Sync")
                     .setValue(0);
         }
+
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        rootRef = FirebaseFirestore.getInstance();
+        uidRef = rootRef.collection("users").document(uid);
+        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot document = task.getResult();
+                    String data = (String) document.get("Default TrackerID");
+                    if(data != null){
+                        DefaultTracker = data;
+                        Log.d(TAG, "Default Tracker ID: " + data);
+                    }
+                }
+            }
+        });
+
     }
 }

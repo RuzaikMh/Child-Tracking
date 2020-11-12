@@ -10,7 +10,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".BLE_Distance"></activity>
+        <activity android:name=".ViewChild"></activity>
+        <activity android:name=".AddTracker" />
+        <activity android:name=".AddChild" />
+        <activity android:name=".BLE_Distance" />
         <activity android:name=".Dialog_BTLE_Characteristic" />
         <activity android:name=".Activity_BTLE_Services" />
         <activity android:name=".BLE_main" />
@@ -57,27 +60,30 @@
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
 
-        <service android:name=".FirebaseService" android:exported="false" >
-            <intent-filter>
-                <action android:name="com.example.childtracking.FirebaseService"/>
-            </intent-filter>
-        </service>
-
         <receiver android:name=".StartFirebaseAtBoot">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"></action>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
+        <service
+            android:name=".FirebaseService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.childtracking.FirebaseService" />
+            </intent-filter>
+        </service>
     </application>
 
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
 </manifest>
