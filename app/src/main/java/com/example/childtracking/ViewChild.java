@@ -2,7 +2,9 @@ package com.example.childtracking;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -93,12 +95,44 @@ public class ViewChild extends AppCompatActivity {
         uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         rootRef = FirebaseFirestore.getInstance();
         uidRef = rootRef.collection("users").document(uid);
-        uidRef.update("Default TrackerID",selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
+
+        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
-            public void onSuccess(Void aVoid) {
-                Toast.makeText(ViewChild.this, "Done", Toast.LENGTH_SHORT).show();
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot document = task.getResult();
+                    final String data = (String) document.get("Default TrackerID");
+                    if(data != null){
+                        if(!data.equals(selectedItem)){
+                            uidRef.update("Default TrackerID",selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+
+                            Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
+                            serviceIntent.putExtra("inputExtra", data);
+
+                        }
+                        else {
+                            Toast.makeText(ViewChild.this, "Already selected as default", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    else{
+                        uidRef.update("Default TrackerID",selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                Toast.makeText(ViewChild.this, "Default : " + data, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                }
             }
         });
+
+
     }
 
 }

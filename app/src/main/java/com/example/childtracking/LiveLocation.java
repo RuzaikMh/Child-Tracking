@@ -10,6 +10,7 @@ import androidx.preference.PreferenceManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -35,6 +36,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -62,6 +64,10 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Marker;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,29 +101,63 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     String radiusMeter;
     String syncInterval;
     double radius;
+    String uid;
+    FirebaseFirestore rootRef;
+    DocumentReference uidRef;
+    String DefaultTracker;
+    String tracker;
+    String getExtra;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        rootRef = FirebaseFirestore.getInstance();
+        uidRef = rootRef.collection("users").document(uid);
+        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                DocumentSnapshot document = task.getResult();
+                DefaultTracker = (String) document.get("Default TrackerID");
+                Log.d(TAG, "onCreate tracker123 : " + DefaultTracker);
+
+            }
+        });
+
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_live_location);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkLocationPermission();
         }
+
+        Intent intent = getIntent();
+
+        getExtra = intent.getStringExtra("defaultTracker");
+        Log.d(TAG, "onCreate: getSrting" + getExtra);
+        settingGeoFire();
+
         mCustomButton = (ImageView) findViewById(R.id.custom_button);
         mCustomButton.setClickable(true);
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        settingGeoFire();
+
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         radiusMeter = sharedPreferences.getString("radiusMeters","0.2");
         GEOFENCE_RADIUS = Float.parseFloat(radiusMeter) * 1000;
         radius = Double.parseDouble(radiusMeter);
+    }
+
+    private void settingGeoFire(){
+        myLocationRef = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+DefaultTracker);
+        geoFire = new GeoFire(myLocationRef);
+
     }
 
     @Override
@@ -133,13 +173,13 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         mCustomButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Current Location");
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+tracker);
                 databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        Double latitude = snapshot.child("Lat").getValue(Double.class);
-                        Double longitude = snapshot.child("Lag").getValue(Double.class);
-
+                        Double latitude = snapshot.child("latitude").getValue(Double.class);
+                        Double longitude = snapshot.child("logitude").getValue(Double.class);
+                        Log.d(TAG, "defalut here: " + tracker);
                         CameraPosition position = new CameraPosition.Builder()
                                 .target(new LatLng(latitude,longitude)) // Sets the new camera position
                                 .zoom(17) // Sets the zoom
@@ -194,9 +234,10 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                         {
                             MyLatLng latLng = locationSnapshot.getValue(MyLatLng.class);
                             latLngList.add(latLng);
-
+                            Log.d(TAG, "see here : " + latLngList.size());
                         }
                         listener.onLoadLocationSuccess(latLngList);
+                        Log.d(TAG, "see here : " + latLngList.size());
                     }
 
                     @Override
@@ -225,11 +266,15 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         }
         for(LatLng latLng1 : dangerousArea){
             addCircle(latLng1,GEOFENCE_RADIUS);
-
+            Log.d(TAG, "problem : " + latLng1.longitude +" "+ latLng1.latitude +" "+ radius);
             // creates a new query around the location
-            geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude,latLng1.longitude),radius);
-            geoQuery.addGeoQueryEventListener(LiveLocation.this);
-            Log.d(TAG, "onLoadLocationSuccess: Ruzaik"+GEOFENCE_RADIUS+"  "+radius);
+
+                geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude, latLng1.longitude), radius);
+                geoQuery.addGeoQueryEventListener(LiveLocation.this);
+                Log.d(TAG, "onLoadLocationSuccess: Ruzaik" + GEOFENCE_RADIUS + "  " + radius);
+
+                Log.d(TAG, "Geo-fire is null ");
+
         }
     }
 
@@ -263,10 +308,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         Toast.makeText(this, ""+error.getMessage(), Toast.LENGTH_SHORT).show();
     }
 
-    private void settingGeoFire(){
-        myLocationRef = FirebaseDatabase.getInstance().getReference("Current Location");
-        geoFire = new GeoFire(myLocationRef);
-    }
 
     private void sendNotification(String title, String content) {
         Toast.makeText(this,""+content,Toast.LENGTH_SHORT).show();
@@ -301,27 +342,39 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void readData(final firebaseCallback firebaseCallback){
-        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Current Location");
-        ValueEventListener listener = databaseReference.addValueEventListener(new ValueEventListener() {
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        rootRef = FirebaseFirestore.getInstance();
+        uidRef = rootRef.collection("users").document(uid);
+        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                Double latitude = dataSnapshot.child("Lat").getValue(Double.class);
-                Double longitude = dataSnapshot.child("Lag").getValue(Double.class);
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                DocumentSnapshot document = task.getResult();
+                tracker = (String) document.get("Default TrackerID");
+                Log.d(TAG, "readData: " + tracker);
 
-                LatLng location = new LatLng(latitude, longitude);
-                if (marker != null) {
-                    marker.remove();
-                }
-                marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location")
-                .icon(bitmapDescriptor(getApplicationContext(),R.drawable.ic_baseline_emoji_people_24)));
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+tracker);
+                databaseReference.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        Double latitude = dataSnapshot.child("latitude").getValue(Double.class);
+                        Double longitude = dataSnapshot.child("logitude").getValue(Double.class);
+                        Log.d(TAG, "defalut check: " + tracker);
+                        LatLng location = new LatLng(latitude, longitude);
+                        if (marker != null) {
+                            marker.remove();
+                        }
+                        marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location")
+                                .icon(bitmapDescriptor(getApplicationContext(),R.drawable.ic_baseline_emoji_people_24)));
 
-                geoFire.setLocation("Child", new GeoLocation(latitude,longitude));
+                        geoFire.setLocation("Child", new GeoLocation(latitude,longitude));
 
-                firebaseCallback.onCallback(longitude,latitude);
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
+                        firebaseCallback.onCallback(longitude,latitude);
+                    }
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
 
+                    }
+                });
             }
         });
     }

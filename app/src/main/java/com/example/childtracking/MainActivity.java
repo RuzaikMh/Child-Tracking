@@ -8,7 +8,6 @@ import androidx.preference.PreferenceManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
@@ -32,16 +31,37 @@ public class MainActivity extends AppCompatActivity {
     ToggleButton toggleButton;
     FirebaseFirestore rootRef;
     DocumentReference uidRef;
-    String uid,DefaultTracker;
+    String uid,DefaultTracker,DefaultTrackerChanged;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        rootRef = FirebaseFirestore.getInstance();
+        uidRef = rootRef.collection("users").document(uid);
+        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot document = task.getResult();
+                    String data = (String) document.get("Default TrackerID");
+                    if(data != null){
+                        DefaultTracker = data;
+                        Log.d(TAG, "Default Tracker ID: " + data);
+                        if(DefaultTracker != null) {
+                            Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
+                            serviceIntent.putExtra("inputExtra", DefaultTracker);
+                            ContextCompat.startForegroundService(getApplicationContext(), serviceIntent);
+                        }
+                    }
+                }
+            }
+        });
 
-        Intent serviceIntent = new Intent(this, FirebaseService.class);
-        ContextCompat.startForegroundService(this, serviceIntent);
+
+
         toggleButton = (ToggleButton) findViewById(R.id.toggle1);
         getStatus();
         toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -62,7 +82,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void btnLiveLocation(View view){
-        startActivity(new Intent(getApplicationContext(),LiveLocation.class));
+        Intent intent = new Intent(getApplicationContext(),LiveLocation.class);
+        intent.putExtra("defaultTracker", DefaultTracker);
+        startActivity(intent);
+
+    }
+
+    public void btnTrackingHistroy(View view){
+        startActivity(new Intent(getApplicationContext(),trackingHistroy.class));
     }
 
     public void btnAddTracker(View view){
@@ -135,23 +162,6 @@ public class MainActivity extends AppCompatActivity {
                     .child("Sync")
                     .setValue(0);
         }
-
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        rootRef = FirebaseFirestore.getInstance();
-        uidRef = rootRef.collection("users").document(uid);
-        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                if(task.isSuccessful()){
-                    DocumentSnapshot document = task.getResult();
-                    String data = (String) document.get("Default TrackerID");
-                    if(data != null){
-                        DefaultTracker = data;
-                        Log.d(TAG, "Default Tracker ID: " + data);
-                    }
-                }
-            }
-        });
 
     }
 }

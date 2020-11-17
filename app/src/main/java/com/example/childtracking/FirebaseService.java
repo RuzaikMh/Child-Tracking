@@ -14,11 +14,17 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Random;
 
@@ -31,11 +37,19 @@ import static  com.example.childtracking.App.CHANNEL_ID;
 public class FirebaseService extends Service {
 
     private static final String TAG = "service";
+    String uid,DefaultTracker;
+    FirebaseFirestore rootRef;
+    DocumentReference uidRef;
 
     @Override
     public void onCreate() {
         super.onCreate();
+    }
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        final String input = intent.getStringExtra("inputExtra");
+        Log.d(TAG, "Extra Default : " + input);
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, 0);
@@ -51,7 +65,7 @@ public class FirebaseService extends Service {
         ValueEventListener listener = databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                String status = dataSnapshot.child("deviceId/0/fall").getValue(String.class);
+                String status = dataSnapshot.child("deviceId/"+input+"/fall").getValue(String.class);
                 Log.d(TAG, "onDataChange: " + status);
                 if(status.equals("true")){
                     sendNotification("Your Child Felled", "the system detected a fall");
@@ -62,11 +76,7 @@ public class FirebaseService extends Service {
 
             }
         });
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        return super.onStartCommand(intent, flags, startId);
+        return START_NOT_STICKY;
     }
 
     @Override
