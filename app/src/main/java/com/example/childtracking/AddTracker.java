@@ -35,9 +35,10 @@ import java.util.Map;
 public class AddTracker extends AppCompatActivity {
 
     private static final String TAG = "add tracker" ;
-    EditText ID,password;
+    EditText ID,password,child;
     String deviceID;
     String pass;
+    String childName;
     int passInt;
     ProgressBar progressBar;
     Button add;
@@ -52,6 +53,7 @@ public class AddTracker extends AppCompatActivity {
 
         ID = findViewById(R.id.trackerIDtxt);
         password= findViewById(R.id.passTxt);
+        //child = findViewById(R.id.editTextChild);
         progressBar = findViewById(R.id.progressBar3);
         add = findViewById(R.id.txtAdd);
 
@@ -66,6 +68,7 @@ public class AddTracker extends AppCompatActivity {
                         InputMethodManager.HIDE_NOT_ALWAYS);
                 deviceID = ID.getText().toString();
                 pass = password.getText().toString();
+                //childName = child.getText().toString();
                 passInt = Integer.parseInt(pass);
                 progressBar.setVisibility(View.VISIBLE);
                 DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId");

@@ -15,7 +15,12 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ScrollView;
+import android.widget.TextView;
 
+import com.skyfishjy.library.RippleBackground;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -28,9 +33,9 @@ public class BLE_main extends AppCompatActivity implements View.OnClickListener,
     private ArrayList<BTLE_Device> mBTDevicesArrayList;
     private ListAdapter_BTLE_Devices adapter;
     private ListView listView;
-
+    private TextView RssiTextView, DistanceTextView;
     private Button btn_Scan;
-
+    RippleBackground rippleBackground;
     private BroadcastReceiver_BTState mBTStateUpdateReceiver;
     private Scanner_BTLE mBTLeScanner;
 
@@ -49,15 +54,14 @@ public class BLE_main extends AppCompatActivity implements View.OnClickListener,
 
         mBTDevicesHashMap = new HashMap<>();
         mBTDevicesArrayList = new ArrayList<>();
+        rippleBackground=(RippleBackground)findViewById(R.id.content);
 
-        adapter = new ListAdapter_BTLE_Devices(this, R.layout.btle_device_list_item, mBTDevicesArrayList);
 
-        listView = new ListView(this);
-        listView.setAdapter(adapter);
-        listView.setOnItemClickListener(this);
 
+        RssiTextView = findViewById(R.id.textView6);
+        DistanceTextView = findViewById(R.id.textView5);
         btn_Scan = (Button) findViewById(R.id.btn_scan);
-        ((ScrollView) findViewById(R.id.scrollView)).addView(listView);
+
         findViewById(R.id.btn_scan).setOnClickListener(this);
 
     }
@@ -172,12 +176,20 @@ public class BLE_main extends AppCompatActivity implements View.OnClickListener,
             mBTDevicesHashMap.get(address).setDistnace(calculateDistance(rssi));
         }
 
-        adapter.notifyDataSetChanged();
+
+        BTLE_Device devices = mBTDevicesArrayList.get(0);
+        String name = devices.getName();
+        String BLEaddress = devices.getAddress();
+        int BLErssi = devices.getRSSI();
+        double distance = devices.getDistnace();
+
+
+        RssiTextView.setText(Integer.toString(BLErssi));
+        DistanceTextView.setText(Double.toString(round(distance,2)) + "M");
     }
 
     public void startScan(){
-        btn_Scan.setText("Scanning...");
-
+        rippleBackground.startRippleAnimation();
         mBTDevicesArrayList.clear();
         mBTDevicesHashMap.clear();
 
@@ -185,8 +197,7 @@ public class BLE_main extends AppCompatActivity implements View.OnClickListener,
     }
 
     public void stopScan() {
-        btn_Scan.setText("Scan Again");
-
+        rippleBackground.stopRippleAnimation();
         mBTLeScanner.stop();
     }
 
@@ -206,6 +217,14 @@ public class BLE_main extends AppCompatActivity implements View.OnClickListener,
             double distance =  (0.89976)*Math.pow(ratio,7.7095) + 0.111;
             return distance;
         }
+    }
+
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 
 }

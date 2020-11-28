@@ -35,17 +35,17 @@
         <activity android:name=".Dialog_BTLE_Characteristic" />
         <activity android:name=".Activity_BTLE_Services" />
         <activity android:name=".BLE_main" />
-        <activity android:name=".SplashScreen" />
-        <activity
-            android:name=".SettingsActivity"
-            android:label="@string/title_activity_settings" />
-        <activity android:name=".Register">
+        <activity android:name=".SplashScreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/title_activity_settings" />
+        <activity android:name=".Register"></activity>
         <activity android:name=".Login" />
         <activity android:name=".GetGeofence" />
         <activity

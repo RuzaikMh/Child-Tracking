@@ -67,8 +67,10 @@ public class FirebaseService extends Service {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 String status = dataSnapshot.child("deviceId/"+input+"/fall").getValue(String.class);
                 Log.d(TAG, "onDataChange: " + status);
-                if(status.equals("true")){
-                    sendNotification("Your Child Felled", "the system detected a fall");
+                if(status != null) {
+                    if (status.equals("true")) {
+                        sendNotification("Your Child Felled", "the system detected a fall");
+                    }
                 }
             }
             @Override
