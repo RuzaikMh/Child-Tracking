@@ -1,25 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout  xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".ViewChild"
+    android:background="@drawable/view_child"
     >
+
+
+    <TextView
+        android:id="@+id/textDashboard2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="288dp"
+        android:text="View child"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.533"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/welcomeMsg2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/textDashboard2"
+        android:layout_marginStart="16dp"
+        android:text="Defalut Tracker : "
+        android:textColor="#52BAFF"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textDashboard2" />
 
     <ListView
         android:id="@+id/ChidList"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        ></ListView>
+        android:layout_width="297dp"
+        android:layout_height="267dp"
+        android:layout_marginStart="83dp"
+        android:layout_marginTop="130dp"
+        android:layout_marginEnd="83dp"
+        android:layout_marginBottom="89dp"
+        app:layout_constraintBottom_toTopOf="@+id/MakeDefaultBtn"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/welcomeMsg2"
+        app:layout_constraintVertical_bias="0.0">
+
+    </ListView>
 
     <Button
         android:id="@+id/MakeDefaultBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="127dp"
+        android:layout_height="34dp"
         android:layout_alignParentBottom="true"
+        android:layout_marginStart="42dp"
+        android:layout_marginEnd="74dp"
+        android:layout_marginBottom="68dp"
         android:layout_weight="1"
-        android:backgroundTint="#E91E63"
+        android:background="@drawable/rounded_corners"
+        android:backgroundTint="#14DF36"
         android:onClick="makeDefault"
-        android:text="Make Default" />
-</RelativeLayout>
+        android:text="Make Default"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/deletebtn"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/deletebtn"
+        android:layout_width="127dp"
+        android:layout_height="34dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="42dp"
+        android:layout_marginBottom="68dp"
+        android:layout_weight="1"
+        android:background="@drawable/rounded_corners"
+        android:backgroundTint="#E91E63"
+        android:onClick="delete"
+        android:text="Delete"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/textView7"
+        android:layout_width="32dp"
+        android:layout_height="20dp"
+        android:layout_below="@id/textDashboard2"
+        android:layout_marginTop="45dp"
+        android:layout_marginEnd="257dp"
+        android:text="Null"
+        android:textColor="#52BAFF"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/welcomeMsg2"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

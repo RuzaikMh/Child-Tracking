@@ -56,7 +56,7 @@
         android:fontFamily="@font/aclonica"
         android:hint="Password"
         android:gravity="center"
-        android:inputType="textPersonName"
+        android:inputType="textPassword"
         android:padding="10dp"
         android:textColorHint="#636363"
         android:textSize="14sp"

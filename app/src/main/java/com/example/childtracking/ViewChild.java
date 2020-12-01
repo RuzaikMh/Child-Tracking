@@ -14,6 +14,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -39,7 +40,8 @@ public class ViewChild extends AppCompatActivity {
     ListView listView;
     List<String> data = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
-    String selectedItem;
+    String selectedItem,Default;
+    TextView txtDefault;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +50,7 @@ public class ViewChild extends AppCompatActivity {
 
         Mdefault = findViewById(R.id.MakeDefaultBtn);
         listView = findViewById(R.id.ChidList);
+        txtDefault = findViewById(R.id.textView7);
 
         uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         rootRef = FirebaseFirestore.getInstance();
@@ -59,12 +62,15 @@ public class ViewChild extends AppCompatActivity {
                 if(task.isSuccessful()) {
                     DocumentSnapshot document = task.getResult();
                     data = (List<String>) document.get("Tracker IDs");
+                    Default = (String) document.get("Default TrackerID");
+                    txtDefault.setText(Default);
                     Log.d(TAG, "data here : " + data);
-                    if (data != null) {
-                        arrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1,data);
-                        listView.setAdapter(arrayAdapter);
-                        listView.setChoiceMode(AbsListView.CHOICE_MODE_SINGLE);
-                    } else {
+
+                    arrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1,data);
+                    listView.setAdapter(arrayAdapter);
+                    listView.setChoiceMode(AbsListView.CHOICE_MODE_SINGLE);
+
+                    if (data == null) {
                         openDialog();
                     }
                 }
@@ -79,7 +85,7 @@ public class ViewChild extends AppCompatActivity {
                     adapterView.getChildAt(a).setBackgroundColor(Color.TRANSPARENT);
                 }
 
-                view.setBackgroundColor(Color.rgb(223,227,238));
+                view.setBackgroundColor(Color.rgb(70,93,202));
                 selectedItem = (String) listView.getItemAtPosition(i);
 
             }
@@ -108,6 +114,7 @@ public class ViewChild extends AppCompatActivity {
                                 @Override
                                 public void onSuccess(Void aVoid) {
                                     Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
+                                    txtDefault.setText(selectedItem);
                                 }
                             });
 
@@ -131,8 +138,32 @@ public class ViewChild extends AppCompatActivity {
                 }
             }
         });
+    }
 
+    public void delete(View view){
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        rootRef = FirebaseFirestore.getInstance();
+        uidRef = rootRef.collection("users").document(uid);
 
+        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot document = task.getResult();
+                    final String data1 = (String) document.get("Default TrackerID");
+                    if(data1 != null){
+                        if(data1.equals(selectedItem)){
+                            Toast.makeText(ViewChild.this, "You cannot delete default", Toast.LENGTH_SHORT).show();
+                        }
+                        else{
+                            uidRef.update("Tracker IDs", FieldValue.arrayRemove(selectedItem));
+                            finish();
+                            startActivity(getIntent());
+                        }
+                    }
+                }
+            }
+        });
     }
 
 }
