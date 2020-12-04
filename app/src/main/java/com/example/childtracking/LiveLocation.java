@@ -611,6 +611,4 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             }
         }
     }
-
-
 }

@@ -5,7 +5,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
-
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -16,7 +15,6 @@ import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
-
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -62,12 +60,10 @@ public class MainActivity extends AppCompatActivity {
                     welcome.setText("Welcome " + fname);
                     if(data != null){
                         DefaultTracker = data;
-                        Log.d(TAG, "Default Tracker ID: " + data);
-                        if(DefaultTracker != null) {
-                            Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
-                            serviceIntent.putExtra("inputExtra", DefaultTracker);
-                            ContextCompat.startForegroundService(getApplicationContext(), serviceIntent);
-                        }
+
+                        Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
+                        serviceIntent.putExtra("inputExtra", DefaultTracker);
+                        ContextCompat.startForegroundService(getApplicationContext(), serviceIntent);
                     }
                 }
             }
@@ -128,46 +124,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-    }
-
-
-
-    public void btnLiveLocation(View view){
-        Intent intent = new Intent(getApplicationContext(),LiveLocation.class);
-        intent.putExtra("defaultTracker", DefaultTracker);
-        startActivity(intent);
-
-    }
-
-    public void btnTrackingHistroy(View view){
-        startActivity(new Intent(getApplicationContext(),trackingHistroy.class));
-    }
-
-    public void btnAddTracker(View view){
-        startActivity(new Intent(getApplicationContext(),AddTracker.class));
-    }
-
-    public void btnGeoFence(View view){
-        startActivity(new Intent(getApplicationContext(),GetGeofence.class));
-    }
-
-    public void btnSetting(View view){
-        startActivity(new Intent(getApplicationContext(),SettingsActivity.class));
-    }
-
-    public void btnStopService(View view){
-        Intent serviceIntent = new Intent(this, FirebaseService.class);
-        stopService(serviceIntent);
-    }
-
-    public void btnBLE(View view){
-        startActivity(new Intent(getApplicationContext(),BLE_main.class));
-    }
-
-    public void logout(View view) {
-        FirebaseAuth.getInstance().signOut();
-        startActivity(new Intent(getApplicationContext(),Login.class));
-        finish();
     }
 
     public void onResume() {

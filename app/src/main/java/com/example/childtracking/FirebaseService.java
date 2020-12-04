@@ -50,6 +50,7 @@ public class FirebaseService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         final String input = intent.getStringExtra("inputExtra");
         Log.d(TAG, "Extra Default : " + input);
+
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, 0);

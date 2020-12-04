@@ -55,7 +55,7 @@ public class ViewChild extends AppCompatActivity {
         uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         rootRef = FirebaseFirestore.getInstance();
         uidRef = rootRef.collection("users").document(uid);
-        Log.d(TAG, "data here : " + uidRef);
+
         uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
@@ -111,16 +111,15 @@ public class ViewChild extends AppCompatActivity {
                     if(data != null){
                         if(!data.equals(selectedItem)){
                             uidRef.update("Default TrackerID",selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void aVoid) {
-                                    Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
                                     txtDefault.setText(selectedItem);
                                 }
                             });
 
                             Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
                             serviceIntent.putExtra("inputExtra", data);
-
                         }
                         else {
                             Toast.makeText(ViewChild.this, "Already selected as default", Toast.LENGTH_SHORT).show();
@@ -131,7 +130,7 @@ public class ViewChild extends AppCompatActivity {
                         uidRef.update("Default TrackerID",selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
-                                Toast.makeText(ViewChild.this, "Default : " + data, Toast.LENGTH_SHORT).show();
+                                Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
                             }
                         });
                     }

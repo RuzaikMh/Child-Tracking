@@ -66,11 +66,13 @@ public class AddTracker extends AppCompatActivity {
 
                 inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
                         InputMethodManager.HIDE_NOT_ALWAYS);
+
                 deviceID = ID.getText().toString();
                 pass = password.getText().toString();
-                //childName = child.getText().toString();
+
                 passInt = Integer.parseInt(pass);
                 progressBar.setVisibility(View.VISIBLE);
+
                 DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId");
                 databaseReference.addValueEventListener(new ValueEventListener() {
                     @Override
@@ -81,13 +83,14 @@ public class AddTracker extends AppCompatActivity {
                                 uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
                                 rootRef = FirebaseFirestore.getInstance();
                                 uidRef = rootRef.collection("users").document(uid);
+
                                 uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                                     @Override
                                     public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                                         if(task.isSuccessful()) {
                                             DocumentSnapshot document = task.getResult();
                                             List<String> data = (List<String>) document.get("Tracker IDs");
-                                            Log.d(TAG, "onComplete: paaru : " + data);
+
                                             if (data != null && data.contains(deviceID)) {
                                                 progressBar.setVisibility(View.GONE);
                                                 Toast.makeText(AddTracker.this, "Child already added", Toast.LENGTH_SHORT).show();
