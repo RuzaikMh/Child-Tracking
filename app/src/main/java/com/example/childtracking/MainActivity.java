@@ -1,5 +1,4 @@
 package com.example.childtracking;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
@@ -8,21 +7,14 @@ import androidx.preference.PreferenceManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.CompoundButton;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.ToggleButton;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -32,7 +24,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     FirebaseFirestore rootRef;
     DocumentReference uidRef;
-    String uid,DefaultTracker,DefaultTrackerChanged;
+    String uid;
+    String DefaultTracker;
     GridLayout mainGrid;
     TextView welcome;
     ImageView profile;
@@ -83,40 +76,40 @@ public class MainActivity extends AppCompatActivity {
     private void setSingleEvent(GridLayout mainGrid) {
         for (int i = 0; i < mainGrid.getChildCount(); i++) {
             CardView cardView = (CardView) mainGrid.getChildAt(i);
-            final int finalI = i;
+            final int id = i;
             cardView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
 
-                    if(finalI == 0)
+                    if(id == 0)
                     {
                         Intent intent = new Intent(getApplicationContext(),LiveLocation.class);
                         intent.putExtra("defaultTracker", DefaultTracker);
                         startActivity(intent);
                     }
-                    else if(finalI == 1)
+                    else if(id == 1)
                     {
                         startActivity(new Intent(getApplicationContext(),GetGeofence.class));
                     }
-                    else if(finalI == 2)
+                    else if(id == 2)
                     {
                         startActivity(new Intent(getApplicationContext(),BLE_main.class));
                     }
-                    else if(finalI == 3)
+                    else if(id == 3)
                     {
                         startActivity(new Intent(getApplicationContext(),AddTracker.class));
                     }
-                    else if(finalI == 4)
+                    else if(id == 4)
                     {
                         startActivity(new Intent(getApplicationContext(),trackingHistroy.class));
                     }
-                    else if(finalI == 5)
+                    else if(id == 5)
                     {
                         Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
                         stopService(serviceIntent);
 
                     }
-                    else if(finalI == 6)
+                    else if(id == 6)
                     {
                         startActivity(new Intent(getApplicationContext(),SettingsActivity.class));
                     }
@@ -139,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
                 .getReference("Alert")
                 .child("Interval")
                 .setValue(interval);
-        if(syncLocation == true) {
+        if(syncLocation) {
             FirebaseDatabase.getInstance()
                     .getReference("Alert")
                     .child("Sync")
@@ -150,6 +143,5 @@ public class MainActivity extends AppCompatActivity {
                     .child("Sync")
                     .setValue(0);
         }
-
     }
 }

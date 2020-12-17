@@ -63,15 +63,15 @@ public class trackingHistroy extends FragmentActivity implements OnMapReadyCallb
                             //traversing through all the object
                             for (int i = 0; i < array.length(); i++) {
 
-                                //getting product object from json array
-                                JSONObject product = array.getJSONObject(i);
+                                //getting tracker object from json array
+                                JSONObject tracker = array.getJSONObject(i);
 
-                                //adding the product to product list
+                                //adding the tracker to TrackerList list
                                 TrackerList.add(new History(
-                                        product.getInt("Id"),
-                                        product.getString("deviceID"),
-                                        product.getDouble("logitude"),
-                                        product.getDouble("latitude")
+                                        tracker.getInt("Id"),
+                                        tracker.getString("deviceID"),
+                                        tracker.getDouble("logitude"),
+                                        tracker.getDouble("latitude")
                                 ));
                                 Log.d(TAG, "history: " + TrackerList.get(i).getLatitude() + TrackerList.get(i).getLongitude());
 

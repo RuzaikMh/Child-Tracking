@@ -50,7 +50,6 @@ public class AddTracker extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_tracker);
-
         ID = findViewById(R.id.trackerIDtxt);
         password= findViewById(R.id.passTxt);
         //child = findViewById(R.id.editTextChild);
