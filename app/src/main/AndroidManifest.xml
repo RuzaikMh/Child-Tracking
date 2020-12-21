@@ -24,10 +24,6 @@
             android:label="@string/title_activity_tracking_histroy" />
         <activity android:name=".ViewChild" />
         <activity android:name=".AddTracker" />
-        <activity android:name=".AddChild" />
-        <activity android:name=".BLE_Distance" />
-        <activity android:name=".Dialog_BTLE_Characteristic" />
-        <activity android:name=".Activity_BTLE_Services" />
         <activity android:name=".BLE_main" />
         <activity android:name=".SplashScreen">
             <intent-filter>
@@ -42,9 +38,6 @@
         <activity android:name=".Register" />
         <activity android:name=".Login" />
         <activity android:name=".GetGeofence" />
-        <activity
-            android:name=".Test"
-            android:label="@string/title_activity_test" />
         <activity
             android:name=".LiveLocation"
             android:label="@string/title_activity_live_location" />

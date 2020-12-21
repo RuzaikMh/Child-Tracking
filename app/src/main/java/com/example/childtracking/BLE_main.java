@@ -183,6 +183,7 @@ public class BLE_main extends AppCompatActivity{
 
         } else {
             mScanning = false;
+            if(mLEScanner != null)
             mLEScanner.stopScan(mLeScanCallback);
         }
     }
