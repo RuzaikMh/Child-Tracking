@@ -95,26 +95,12 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        rootRef = FirebaseFirestore.getInstance();
-        uidRef = rootRef.collection("users").document(uid);
-        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                DocumentSnapshot document = task.getResult();
-                DefaultTracker = (String) document.get("Default TrackerID");
-                Log.d(TAG, "onCreate tracker123 : " + DefaultTracker);
-
-            }
-        });
-
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_live_location);
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
-        settingGeoFire();
 
         mCustomButton = (ImageView) findViewById(R.id.custom_button);
         mCustomButton.setClickable(true);
@@ -131,7 +117,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void settingGeoFire(){
-        myLocationRef = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+DefaultTracker);
+        myLocationRef = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+tracker);
         geoFire = new GeoFire(myLocationRef);
 
     }
@@ -144,6 +130,14 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         mMap.getUiSettings().setZoomGesturesEnabled(true);
         mMap.getUiSettings().setCompassEnabled(true);
         setConrolsPositions();
+
+        readData(new firebaseCallback() {
+            @Override
+            public void onCallback(double longitude, double latitude, String defaultTracker) {
+                settingGeoFire();
+                geoFire.setLocation("Child", new GeoLocation(latitude,longitude));
+            }
+        });
 
         getLocationPermission();
         updateLocationUI();
@@ -178,19 +172,11 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        readData(new firebaseCallback() {
-            @Override
-            public void onCallback(double longitude, double latitude) {
-
-            }
-        });
 
         mMap.setOnMapLongClickListener(this);
 
         listener = this;
-        FirebaseDatabase.getInstance()
-                .getReference("DangerousArea")
-                .child("Locations")
+        FirebaseDatabase.getInstance().getReference("DangerousArea").child("Locations")
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -303,7 +289,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     }
 
     private interface firebaseCallback{
-        void onCallback(double longitude, double latitude);
+        void onCallback(double longitude, double latitude, String defaultTracker);
     }
 
     private void readData(final firebaseCallback firebaseCallback){
@@ -331,9 +317,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                         marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location")
                                 .icon(bitmapDescriptor(getApplicationContext(),R.drawable.ic_baseline_emoji_people_24)));
 
-                        geoFire.setLocation("Child", new GeoLocation(latitude,longitude));
-
-                        firebaseCallback.onCallback(longitude,latitude);
+                        firebaseCallback.onCallback(longitude,latitude,tracker);
                     }
                     @Override
                     public void onCancelled(@NonNull DatabaseError databaseError) {
