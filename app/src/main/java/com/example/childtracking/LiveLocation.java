@@ -83,6 +83,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     private DatabaseReference myLocationRef;
     private IOnLoadLocationListener listener;
     GeoQuery geoQuery;
+    private List<GeoQuery> geoQueryList = new ArrayList<>();
     SupportMapFragment mapFragment;
     String radiusMeter,uid,DefaultTracker,tracker,getExtra,syncInterval;
     double radius;
@@ -91,6 +92,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     FusedLocationProviderClient fusedLocationProviderClient;
     private boolean locationPermissionGranted;
     private Location lastKnownLocation;
+    private int enter, exit, move;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,16 +101,18 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
         setContentView(R.layout.activity_live_location);
 
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        Intent intent = getIntent();
+        DefaultTracker = intent.getStringExtra("defaultTracker");
+        Toast.makeText(this, "Default tracker is " + DefaultTracker, Toast.LENGTH_SHORT).show();
+        settingGeoFire();
 
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
         mCustomButton = (ImageView) findViewById(R.id.custom_button);
         mCustomButton.setClickable(true);
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         radiusMeter = sharedPreferences.getString("radiusMeters","0.2");
@@ -117,9 +121,8 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void settingGeoFire(){
-        myLocationRef = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+tracker);
+        myLocationRef = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker);
         geoFire = new GeoFire(myLocationRef);
-
     }
 
     @Override
@@ -133,9 +136,8 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
         readData(new firebaseCallback() {
             @Override
-            public void onCallback(double longitude, double latitude, String defaultTracker) {
-                settingGeoFire();
-                geoFire.setLocation("Child", new GeoLocation(latitude,longitude));
+            public void onCallback(double longitude, double latitude) {
+                geoFire.setLocation("Child "+DefaultTracker, new GeoLocation(latitude,longitude));
             }
         });
 
@@ -172,11 +174,10 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-
         mMap.setOnMapLongClickListener(this);
 
         listener = this;
-        FirebaseDatabase.getInstance().getReference("DangerousArea").child("Locations")
+        FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker).child("Geo-fence areas")
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -208,8 +209,12 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             dangerousArea.add(convert);
         }
 
-        if(geoQuery != null){
-            geoQuery.removeAllListeners();
+        if(geoQueryList != null && !geoQueryList.isEmpty()){
+            Log.d(TAG, "geoQuery list check before remove" + geoQueryList);
+            for(GeoQuery geoQuery : geoQueryList){
+                geoQuery.removeAllListeners();
+            }
+            geoQueryList.clear();
         }
 
         if(geoCircle != null) {
@@ -217,15 +222,12 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         }
         for(LatLng latLng1 : dangerousArea){
             addCircle(latLng1,GEOFENCE_RADIUS);
-            Log.d(TAG, "problem : " + latLng1.longitude +" "+ latLng1.latitude +" "+ radius);
+
             // creates a new query around the location
-
-                geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude, latLng1.longitude), radius);
-                geoQuery.addGeoQueryEventListener(LiveLocation.this);
-                Log.d(TAG, "onLoadLocationSuccess: Ruzaik" + GEOFENCE_RADIUS + "  " + radius);
-
-                Log.d(TAG, "Geo-fire is null ");
-
+            geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude, latLng1.longitude), radius);
+            geoQuery.addGeoQueryEventListener(LiveLocation.this);
+            geoQueryList.add(geoQuery);
+            Log.d(TAG, "geoQuery list check" + geoQueryList);
         }
     }
 
@@ -237,16 +239,22 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onKeyEntered(String key, GeoLocation location) {
         sendNotification("Child",String.format("%s entered the dangerous area",key));
+        enter++;
+        Log.d(TAG, "onKeyEntered: test " + enter);
     }
 
     @Override
     public void onKeyExited(String key) {
         sendNotification("Child",String.format("%s leaved the dangerous area",key));
+        exit++;
+        Log.d(TAG, "onKeyExited: test " + exit);
     }
 
     @Override
     public void onKeyMoved(String key, GeoLocation location) {
         sendNotification("Child",String.format("%s move within the dangerous area",key));
+        move++;
+        Log.d(TAG, "onKeyMoved: test " + move);
     }
 
     @Override
@@ -259,6 +267,91 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         Toast.makeText(this, ""+error.getMessage(), Toast.LENGTH_SHORT).show();
     }
 
+    private interface firebaseCallback{
+        void onCallback(double longitude, double latitude);
+    }
+
+    private void readData(final firebaseCallback firebaseCallback){
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        rootRef = FirebaseFirestore.getInstance();
+        uidRef = rootRef.collection("users").document(uid);
+        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                DocumentSnapshot document = task.getResult();
+                tracker = (String) document.get("Default TrackerID");
+
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+tracker);
+                databaseReference.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        Double latitude = dataSnapshot.child("latitude").getValue(Double.class);
+                        Double longitude = dataSnapshot.child("logitude").getValue(Double.class);
+
+                        LatLng location = new LatLng(latitude, longitude);
+                        if (marker != null) {
+                            marker.remove();
+                        }
+                        marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location")
+                                .icon(bitmapDescriptor(getApplicationContext(),R.drawable.ic_baseline_emoji_people_24)));
+
+                        firebaseCallback.onCallback(longitude,latitude);
+                    }
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                        Log.d(TAG, "firebase callback error : " + databaseError);
+                    }
+                });
+            }
+        });
+    }
+
+
+    @Override
+    public void onMapLongClick(LatLng latLng) {
+        LatLng add = new LatLng(latLng.latitude,latLng.longitude);
+
+            FirebaseDatabase.getInstance()
+                    .getReference("Tracker/deviceId/" + DefaultTracker)
+                    .child("Geo-fence areas")
+                    .push()
+                    .setValue(add)
+                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            Toast.makeText(LiveLocation.this, "New geo-fence Added!", Toast.LENGTH_SHORT).show();
+                        }
+                    }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Toast.makeText(LiveLocation.this, "" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+    }
+
+    public void deleteCircle(){
+
+        for(int i = 0 ; i <= geoCircle.size() - 1 ; i++){
+            Circle mCircle = geoCircle.get(i);
+            mCircle.remove();
+        }
+        geoCircle.clear();
+    }
+
+    private void addCircle(LatLng latLng, float radius){
+        if(geoCircle == null){
+            geoCircle = new ArrayList<>();
+        }
+
+        CircleOptions circleOptions = new CircleOptions();
+        circleOptions.center(latLng);
+        circleOptions.radius(radius);
+        circleOptions.strokeColor(Color.argb(255,255,0,0));
+        circleOptions.fillColor(Color.argb(64,255,0,0));
+        circleOptions.strokeColor(4);
+        circle = mMap.addCircle(circleOptions);
+        geoCircle.add(circle);
+    }
 
     private void sendNotification(String title, String content) {
         Toast.makeText(this,""+content,Toast.LENGTH_SHORT).show();
@@ -286,94 +379,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
         Notification notification = builder.build();
         notificationManager.notify(new Random().nextInt(),notification);
-    }
-
-    private interface firebaseCallback{
-        void onCallback(double longitude, double latitude, String defaultTracker);
-    }
-
-    private void readData(final firebaseCallback firebaseCallback){
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        rootRef = FirebaseFirestore.getInstance();
-        uidRef = rootRef.collection("users").document(uid);
-        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                DocumentSnapshot document = task.getResult();
-                tracker = (String) document.get("Default TrackerID");
-                Log.d(TAG, "readData: " + tracker);
-
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+tracker);
-                databaseReference.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        Double latitude = dataSnapshot.child("latitude").getValue(Double.class);
-                        Double longitude = dataSnapshot.child("logitude").getValue(Double.class);
-                        Log.d(TAG, "defalut check: " + tracker);
-                        LatLng location = new LatLng(latitude, longitude);
-                        if (marker != null) {
-                            marker.remove();
-                        }
-                        marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location")
-                                .icon(bitmapDescriptor(getApplicationContext(),R.drawable.ic_baseline_emoji_people_24)));
-
-                        firebaseCallback.onCallback(longitude,latitude,tracker);
-                    }
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                    }
-                });
-            }
-        });
-    }
-
-
-    @Override
-    public void onMapLongClick(LatLng latLng) {
-        LatLng mine = new LatLng(latLng.latitude,latLng.longitude);
-
-        FirebaseDatabase.getInstance()
-                .getReference("DangerousArea")
-                .child("Locations")
-                .push()
-                .setValue(mine)
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        Toast.makeText(LiveLocation.this, "Geo-fence Added!", Toast.LENGTH_SHORT).show();
-                    }
-                }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(LiveLocation.this, ""+e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        });
-
-    }
-
-    public void deleteCircle(){
-
-        for(int i = 0 ; i <= geoCircle.size() - 1 ; i++){
-            Circle mCircle = geoCircle.get(i);
-            mCircle.remove();
-        }
-        geoCircle.clear();
-    }
-
-    private void addCircle(LatLng latLng, float radius){
-        if(geoCircle == null){
-            geoCircle = new ArrayList<>();
-        }
-
-        CircleOptions circleOptions = new CircleOptions();
-        circleOptions.center(latLng);
-        circleOptions.radius(radius);
-        circleOptions.strokeColor(Color.argb(255,255,0,0));
-        circleOptions.fillColor(Color.argb(64,255,0,0));
-        circleOptions.strokeColor(4);
-        circle = mMap.addCircle(circleOptions);
-        geoCircle.add(circle);
     }
 
     void setConrolsPositions() {

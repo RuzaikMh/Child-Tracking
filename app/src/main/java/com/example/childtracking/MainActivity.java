@@ -11,6 +11,8 @@ import android.view.View;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -25,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
     FirebaseFirestore rootRef;
     DocumentReference uidRef;
     String uid;
-    String DefaultTracker;
+    String DefaultTracker = null;
     GridLayout mainGrid;
     TextView welcome;
     ImageView profile;
@@ -40,6 +42,20 @@ public class MainActivity extends AppCompatActivity {
         welcome = findViewById(R.id.welcomeMsg);
         profile = findViewById(R.id.imageView4);
 
+        loadDataOnCreate();
+
+        profile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                FirebaseAuth.getInstance().signOut();
+                startActivity(new Intent(getApplicationContext(),Login.class));
+                finish();
+            }
+        });
+
+    }
+
+    private void loadDataOnCreate(){
         uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         rootRef = FirebaseFirestore.getInstance();
         uidRef = rootRef.collection("users").document(uid);
@@ -61,16 +77,24 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
 
-        profile.setOnClickListener(new View.OnClickListener() {
+    private void loadDataOnResume(){
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        rootRef = FirebaseFirestore.getInstance();
+        uidRef = rootRef.collection("users").document(uid);
+        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
-            public void onClick(View view) {
-                FirebaseAuth.getInstance().signOut();
-                startActivity(new Intent(getApplicationContext(),Login.class));
-                finish();
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot document = task.getResult();
+                    String data = (String) document.get("Default TrackerID");
+                    if(data != null){
+                        DefaultTracker = data;
+                    }
+                }
             }
         });
-
     }
 
     private void setSingleEvent(GridLayout mainGrid) {
@@ -83,9 +107,13 @@ public class MainActivity extends AppCompatActivity {
 
                     if(id == 0)
                     {
-                        Intent intent = new Intent(getApplicationContext(),LiveLocation.class);
-                        intent.putExtra("defaultTracker", DefaultTracker);
-                        startActivity(intent);
+                        if(DefaultTracker != null) {
+                            Intent intent = new Intent(getApplicationContext(), LiveLocation.class);
+                            intent.putExtra("defaultTracker", DefaultTracker);
+                            startActivity(intent);
+                        }else {
+                            Toast.makeText(MainActivity.this, "Please wait until data loads", Toast.LENGTH_SHORT).show();
+                        }
                     }
                     else if(id == 1)
                     {
@@ -128,20 +156,6 @@ public class MainActivity extends AppCompatActivity {
         double interval =  Double.parseDouble(syncInterval);
         boolean syncLocation = sharedPreferences.getBoolean("perform_sync",true);
 
-        FirebaseDatabase.getInstance()
-                .getReference("Alert")
-                .child("Interval")
-                .setValue(interval);
-        if(syncLocation) {
-            FirebaseDatabase.getInstance()
-                    .getReference("Alert")
-                    .child("Sync")
-                    .setValue(1);
-        }else{
-            FirebaseDatabase.getInstance()
-                    .getReference("Alert")
-                    .child("Sync")
-                    .setValue(0);
-        }
+        loadDataOnResume();
     }
 }
