@@ -1,26 +1,19 @@
 package com.example.childtracking;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.preference.PreferenceManager;
 import android.annotation.SuppressLint;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import com.firebase.geofire.GeoFire;
-import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
-import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -34,7 +27,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -46,15 +38,12 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.os.Build;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Marker;
@@ -63,40 +52,33 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 
 public class LiveLocation extends FragmentActivity implements OnMapReadyCallback,
-         GoogleMap.OnMapLongClickListener, GeoQueryEventListener, IOnLoadLocationListener {
+         GoogleMap.OnMapLongClickListener, IOnLoadLocationListener {
 
     private static final String TAG = "LiveLocation";
     private static final int REQUEST_ENABLE_LOCATION = 12;
 
     private ImageView mCustomButton;
-    Marker mCurrLocationMarker,marker;
+    Marker marker;
     private GoogleMap mMap;
     Circle circle;
     private List<Circle> geoCircle;
     private float GEOFENCE_RADIUS = 200;
-    private GeoFire geoFire;
     public List<LatLng> dangerousArea = new ArrayList<>();
-    private DatabaseReference myLocationRef;
     private IOnLoadLocationListener listener;
-    GeoQuery geoQuery;
-    private List<GeoQuery> geoQueryList = new ArrayList<>();
     SupportMapFragment mapFragment;
-    String radiusMeter,uid,DefaultTracker,tracker,getExtra,syncInterval;
+    String radiusMeter,uid,DefaultTracker,tracker;
     double radius;
     FirebaseFirestore rootRef;
     DocumentReference uidRef;
     FusedLocationProviderClient fusedLocationProviderClient;
     private boolean locationPermissionGranted;
     private Location lastKnownLocation;
-    private int enter, exit, move;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_live_location);
@@ -104,7 +86,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         Intent intent = getIntent();
         DefaultTracker = intent.getStringExtra("defaultTracker");
         Toast.makeText(this, "Default tracker is " + DefaultTracker, Toast.LENGTH_SHORT).show();
-        settingGeoFire();
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -120,11 +101,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         radius = Double.parseDouble(radiusMeter);
     }
 
-    private void settingGeoFire(){
-        myLocationRef = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker);
-        geoFire = new GeoFire(myLocationRef);
-    }
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -137,7 +113,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         readData(new firebaseCallback() {
             @Override
             public void onCallback(double longitude, double latitude) {
-                geoFire.setLocation("Child "+DefaultTracker, new GeoLocation(latitude,longitude));
+
             }
         });
 
@@ -187,10 +163,8 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
                         {
                             MyLatLng latLng = locationSnapshot.getValue(MyLatLng.class);
                             latLngList.add(latLng);
-                            Log.d(TAG, "see here : " + latLngList.size());
                         }
                         listener.onLoadLocationSuccess(latLngList);
-                        Log.d(TAG, "see here : " + latLngList.size());
                     }
 
                     @Override
@@ -209,25 +183,11 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
             dangerousArea.add(convert);
         }
 
-        if(geoQueryList != null && !geoQueryList.isEmpty()){
-            Log.d(TAG, "geoQuery list check before remove" + geoQueryList);
-            for(GeoQuery geoQuery : geoQueryList){
-                geoQuery.removeAllListeners();
-            }
-            geoQueryList.clear();
-        }
-
         if(geoCircle != null) {
             deleteCircle();
         }
         for(LatLng latLng1 : dangerousArea){
             addCircle(latLng1,GEOFENCE_RADIUS);
-
-            // creates a new query around the location
-            geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude, latLng1.longitude), radius);
-            geoQuery.addGeoQueryEventListener(LiveLocation.this);
-            geoQueryList.add(geoQuery);
-            Log.d(TAG, "geoQuery list check" + geoQueryList);
         }
     }
 
@@ -236,36 +196,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         Toast.makeText(this, ""+message, Toast.LENGTH_SHORT).show();
     }
 
-    @Override
-    public void onKeyEntered(String key, GeoLocation location) {
-        sendNotification("Child",String.format("%s entered the dangerous area",key));
-        enter++;
-        Log.d(TAG, "onKeyEntered: test " + enter);
-    }
-
-    @Override
-    public void onKeyExited(String key) {
-        sendNotification("Child",String.format("%s leaved the dangerous area",key));
-        exit++;
-        Log.d(TAG, "onKeyExited: test " + exit);
-    }
-
-    @Override
-    public void onKeyMoved(String key, GeoLocation location) {
-        sendNotification("Child",String.format("%s move within the dangerous area",key));
-        move++;
-        Log.d(TAG, "onKeyMoved: test " + move);
-    }
-
-    @Override
-    public void onGeoQueryReady() {
-
-    }
-
-    @Override
-    public void onGeoQueryError(DatabaseError error) {
-        Toast.makeText(this, ""+error.getMessage(), Toast.LENGTH_SHORT).show();
-    }
 
     private interface firebaseCallback{
         void onCallback(double longitude, double latitude);
@@ -351,34 +281,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         circleOptions.strokeColor(4);
         circle = mMap.addCircle(circleOptions);
         geoCircle.add(circle);
-    }
-
-    private void sendNotification(String title, String content) {
-        Toast.makeText(this,""+content,Toast.LENGTH_SHORT).show();
-
-        String NOTIFICATION_CHANNEL_ID = "Child Tracking";
-        NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,"My notification",
-                    NotificationManager.IMPORTANCE_DEFAULT);
-
-            notificationChannel.setDescription("Channel description");
-            notificationChannel.enableLights(true);
-            notificationChannel.setLightColor(Color.RED);
-            notificationChannel.setVibrationPattern(new long[] {0,1000,500,1000});
-            notificationChannel.enableVibration(true);
-            notificationManager.createNotificationChannel(notificationChannel);
-        }
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this,NOTIFICATION_CHANNEL_ID);
-        builder.setContentTitle(title)
-                .setContentText(content)
-                .setAutoCancel(false)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(),R.mipmap.ic_launcher));
-
-        Notification notification = builder.build();
-        notificationManager.notify(new Random().nextInt(),notification);
     }
 
     void setConrolsPositions() {

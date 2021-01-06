@@ -12,10 +12,17 @@ import android.widget.TextView;
 
 import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +34,10 @@ public class GetGeofence extends AppCompatActivity {
     private ListView myListView;
     private IOnLoadLocationListener listener;
     private ArrayAdapter<LatLng> arrayAdapter;
+    private String uid,DefaultTracker;
+    private FirebaseFirestore firebaseFirestore;
+    private DocumentReference documentReference;
+    private DatabaseReference databaseReference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,28 +51,38 @@ public class GetGeofence extends AppCompatActivity {
     }
 
     public void getData(){
-        FirebaseDatabase.getInstance()
-                .getReference("DangerousArea")
-                .child("Locations")
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        List<MyLatLng> latLngList = new ArrayList<>();
-                        for(DataSnapshot locationSnapshot : snapshot.getChildren())
-                        {
-                            MyLatLng latLng = locationSnapshot.getValue(MyLatLng.class);
-                            latLngList.add(latLng);
-                            Log.d(TAG, "onDataChange: LOOk" + latLngList.get(0));
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        firebaseFirestore = FirebaseFirestore.getInstance();
+        documentReference = firebaseFirestore.collection("users").document(uid);
+        documentReference.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot documentSnapshot = task.getResult();
+                    DefaultTracker = documentSnapshot.getString("Default TrackerID");
 
-                        }
-                        onLoadLocationSuccess(latLngList);
-                    }
+                    FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+DefaultTracker).child("Geo-fence areas")
+                            .addValueEventListener(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                    List<MyLatLng> latLngList = new ArrayList<>();
+                                    for(DataSnapshot locationSnapshot : snapshot.getChildren())
+                                    {
+                                        MyLatLng latLng = locationSnapshot.getValue(MyLatLng.class);
+                                        latLngList.add(latLng);
+                                    }
+                                    onLoadLocationSuccess(latLngList);
+                                }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-                        listener.onLocationFailed(error.getMessage());
-                    }
-                });
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError error) {
+                                    listener.onLocationFailed(error.getMessage());
+                                }
+                            });
+                }
+            }
+        });
+
     }
 
 

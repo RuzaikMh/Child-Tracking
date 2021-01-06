@@ -1,6 +1,8 @@
 package com.example.childtracking;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -101,7 +103,7 @@ public class ViewChild extends AppCompatActivity {
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                 if(task.isSuccessful()){
                     DocumentSnapshot document = task.getResult();
-                    final String data = (String) document.get("Default TrackerID");
+                    final String data = document.getString("Default TrackerID");
                     if(data != null){
                         if(!data.equals(selectedItem)){
                             uidRef.update("Default TrackerID",selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -109,11 +111,13 @@ public class ViewChild extends AppCompatActivity {
                                         public void onSuccess(Void aVoid) {
                                             Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
                                     txtDefault.setText(selectedItem);
+
+                                    Intent serviceIntent = new Intent(getApplicationContext(),FirebaseService.class);
+                                    stopService(serviceIntent);
+                                    serviceIntent.putExtra("inputExtra", selectedItem);
+                                    ContextCompat.startForegroundService(getApplicationContext(), serviceIntent);
                                 }
                             });
-
-                            Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
-                            serviceIntent.putExtra("inputExtra", data);
                         }
                         else {
                             Toast.makeText(ViewChild.this, "Already selected as default", Toast.LENGTH_SHORT).show();
