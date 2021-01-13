@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -39,7 +40,6 @@ public class AddTracker extends AppCompatActivity {
     String deviceID;
     String pass;
     String childName;
-    int passInt;
     ProgressBar progressBar;
     Button add;
     String uid;
@@ -60,25 +60,36 @@ public class AddTracker extends AppCompatActivity {
         add.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                InputMethodManager inputManager = (InputMethodManager)
-                        getSystemService(Context.INPUT_METHOD_SERVICE);
+                if(getCurrentFocus() != null) {
+                    InputMethodManager inputManager = (InputMethodManager)
+                            getSystemService(Context.INPUT_METHOD_SERVICE);
 
-                inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
-                        InputMethodManager.HIDE_NOT_ALWAYS);
+                    inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
+                            InputMethodManager.HIDE_NOT_ALWAYS);
+                }
 
                 deviceID = ID.getText().toString();
                 pass = password.getText().toString();
 
-                passInt = Integer.parseInt(pass);
+                if(TextUtils.isEmpty(deviceID)){
+                    ID.setError("Tracker Id is required");
+                    return;
+                }
+
+                if(TextUtils.isEmpty(pass)){
+                    password.setError("Enter Password");
+                    return;
+                }
+
                 progressBar.setVisibility(View.VISIBLE);
 
                 DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId");
-                databaseReference.addValueEventListener(new ValueEventListener() {
+                databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         if (dataSnapshot.hasChild(deviceID)) {
-                            int status = dataSnapshot.child(deviceID+"/password").getValue(Integer.class);
-                            if(passInt == status){
+                            String status = dataSnapshot.child(deviceID+"/password").getValue(String.class);
+                            if(pass.equals(status)){
                                 uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
                                 rootRef = FirebaseFirestore.getInstance();
                                 uidRef = rootRef.collection("users").document(uid);
@@ -104,17 +115,15 @@ public class AddTracker extends AppCompatActivity {
                                         }
                                     }
                                 });
-                                //uidRef.update("Tracker IDs", FieldValue.arrayUnion(deviceID));
-                                //Toast.makeText(AddTracker.this, "Child added ID :" + uid, Toast.LENGTH_SHORT).show();
                             }
                             else {
                                 progressBar.setVisibility(View.GONE);
-                                Toast.makeText(AddTracker.this, "Wrong password", Toast.LENGTH_SHORT).show();
+                                password.setError("Wrong password");
                             }
                         }
                         else {
                             progressBar.setVisibility(View.GONE);
-                            Toast.makeText(AddTracker.this, "The ID does't exits", Toast.LENGTH_SHORT).show();
+                            ID.setError("The ID does't exits");
                         }
                     }
                     @Override

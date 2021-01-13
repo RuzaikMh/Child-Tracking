@@ -35,7 +35,7 @@
         android:fontFamily="@font/aclonica"
         android:gravity="center"
         android:hint="Tracker ID"
-        android:inputType="textPersonName"
+        android:inputType="number"
         android:padding="10dp"
         android:textColorHint="#636363"
         android:textSize="14sp"

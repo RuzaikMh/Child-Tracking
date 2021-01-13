@@ -94,73 +94,76 @@ public class ViewChild extends AppCompatActivity {
     }
 
     public void makeDefault(View view){
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        rootRef = FirebaseFirestore.getInstance();
-        uidRef = rootRef.collection("users").document(uid);
+        if(selectedItem != null) {
+            uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            rootRef = FirebaseFirestore.getInstance();
+            uidRef = rootRef.collection("users").document(uid);
 
-        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                if(task.isSuccessful()){
-                    DocumentSnapshot document = task.getResult();
-                    final String data = document.getString("Default TrackerID");
-                    if(data != null){
-                        if(!data.equals(selectedItem)){
-                            uidRef.update("Default TrackerID",selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                        @Override
-                                        public void onSuccess(Void aVoid) {
-                                            Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
-                                    txtDefault.setText(selectedItem);
+            uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        final String data = document.getString("Default TrackerID");
+                        if (data != null) {
+                            if (!data.equals(selectedItem)) {
+                                uidRef.update("Default TrackerID", selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
+                                        txtDefault.setText(selectedItem);
 
-                                    Intent serviceIntent = new Intent(getApplicationContext(),FirebaseService.class);
-                                    stopService(serviceIntent);
-                                    serviceIntent.putExtra("inputExtra", selectedItem);
-                                    ContextCompat.startForegroundService(getApplicationContext(), serviceIntent);
+                                        Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
+                                        stopService(serviceIntent);
+                                        serviceIntent.putExtra("inputExtra", selectedItem);
+                                        ContextCompat.startForegroundService(getApplicationContext(), serviceIntent);
+                                    }
+                                });
+                            } else {
+                                Toast.makeText(ViewChild.this, "Already selected as default", Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            uidRef.update("Default TrackerID", selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
                                 }
                             });
                         }
-                        else {
-                            Toast.makeText(ViewChild.this, "Already selected as default", Toast.LENGTH_SHORT).show();
-                        }
                     }
+                }
+            });
+        }else {
+            Toast.makeText(this, "Please Select an item", Toast.LENGTH_SHORT).show();
+        }
+    }
 
-                    else{
-                        uidRef.update("Default TrackerID",selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
+    public void delete(View view) {
+        if (selectedItem != null) {
+            uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            rootRef = FirebaseFirestore.getInstance();
+            uidRef = rootRef.collection("users").document(uid);
+
+            uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        final String data1 = (String) document.get("Default TrackerID");
+                        if (data1 != null) {
+                            if (data1.equals(selectedItem)) {
+                                Toast.makeText(ViewChild.this, "You cannot delete default", Toast.LENGTH_SHORT).show();
+                            } else {
+                                uidRef.update("Tracker IDs", FieldValue.arrayRemove(selectedItem));
+                                finish();
+                                startActivity(getIntent());
                             }
-                        });
-                    }
-                }
-            }
-        });
-    }
-
-    public void delete(View view){
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        rootRef = FirebaseFirestore.getInstance();
-        uidRef = rootRef.collection("users").document(uid);
-
-        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-            @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                if(task.isSuccessful()){
-                    DocumentSnapshot document = task.getResult();
-                    final String data1 = (String) document.get("Default TrackerID");
-                    if(data1 != null){
-                        if(data1.equals(selectedItem)){
-                            Toast.makeText(ViewChild.this, "You cannot delete default", Toast.LENGTH_SHORT).show();
-                        }
-                        else{
-                            uidRef.update("Tracker IDs", FieldValue.arrayRemove(selectedItem));
-                            finish();
-                            startActivity(getIntent());
                         }
                     }
                 }
-            }
-        });
+            });
+        }else {
+            Toast.makeText(this, "Please Select an item", Toast.LENGTH_SHORT).show();
+        }
     }
-
 }

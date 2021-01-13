@@ -3,10 +3,12 @@ package com.example.childtracking;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -38,10 +40,22 @@ public class Login extends AppCompatActivity {
         mPassword = findViewById(R.id.password);
         fAuth = FirebaseAuth.getInstance();
 
+        if(fAuth.getCurrentUser() != null){
+            startActivity(new Intent(getApplicationContext(),MainActivity.class));
+            finish();
+        }
 
         mLoginBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if(getCurrentFocus() != null){
+                    InputMethodManager inputMethodManager =
+                            (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+
+                    inputMethodManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
+                            InputMethodManager.HIDE_NOT_ALWAYS);
+                }
+
                 String email = mEmail.getText().toString().trim();
                 String password = mPassword.getText().toString().trim();
 
@@ -55,19 +69,15 @@ public class Login extends AppCompatActivity {
                     return;
                 }
 
-                if(password.length() < 6){
-                    mPassword.setError("Password must be greater than 5 Charecters");
-                    return;
-                }
-
                 progressBar.setVisibility(View.VISIBLE);
 
                 fAuth.signInWithEmailAndPassword(email,password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if(task.isSuccessful()){
-                            Toast.makeText(Login.this, "Logged in Successfuly", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(Login.this, "Logged in Successfully", Toast.LENGTH_SHORT).show();
                             startActivity(new Intent(getApplicationContext(),MainActivity.class));
+                            finish();
                         }else{
                             Toast.makeText(Login.this, "Error !" + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                             progressBar.setVisibility(View.GONE);
@@ -81,6 +91,7 @@ public class Login extends AppCompatActivity {
            @Override
            public void onClick(View view) {
                startActivity(new Intent(getApplicationContext(),Register.class));
+               finish();
            }
        });
     }

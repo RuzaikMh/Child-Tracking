@@ -3,6 +3,15 @@ package com.example.childtracking;
 public class MyLatLng {
     private  double latitude;
     private  double longitude;
+    private double radius;
+
+    public double getRadius() {
+        return radius;
+    }
+
+    public void setRadius(double radius) {
+        this.radius = radius;
+    }
 
     public MyLatLng() {
     }

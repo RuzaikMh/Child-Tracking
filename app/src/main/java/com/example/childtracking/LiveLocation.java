@@ -76,6 +76,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     FusedLocationProviderClient fusedLocationProviderClient;
     private boolean locationPermissionGranted;
     private Location lastKnownLocation;
+    private DatabaseReference databaseReference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,18 +177,14 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onLoadLocationSuccess(List<MyLatLng> latLngs) {
-        dangerousArea = new ArrayList<>();
-        for(MyLatLng myLatLng : latLngs)
-        {
-            LatLng convert = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
-            dangerousArea.add(convert);
-        }
-
         if(geoCircle != null) {
             deleteCircle();
         }
-        for(LatLng latLng1 : dangerousArea){
-            addCircle(latLng1,GEOFENCE_RADIUS);
+
+        for(MyLatLng myLatLng : latLngs)
+        {
+            LatLng latLng1 = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
+            addCircle(latLng1, (float) myLatLng.getRadius() * 1000);
         }
     }
 
@@ -236,27 +233,21 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-
     @Override
     public void onMapLongClick(LatLng latLng) {
         LatLng add = new LatLng(latLng.latitude,latLng.longitude);
 
-            FirebaseDatabase.getInstance()
-                    .getReference("Tracker/deviceId/" + DefaultTracker)
-                    .child("Geo-fence areas")
-                    .push()
-                    .setValue(add)
-                    .addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            Toast.makeText(LiveLocation.this, "New geo-fence Added!", Toast.LENGTH_SHORT).show();
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(LiveLocation.this, "" + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-            });
+        databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker).child("Geo-fence areas");
+        final String key = databaseReference.push().getKey();
+
+        databaseReference.child(key).setValue(add).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                Toast.makeText(LiveLocation.this, "New geo-fence Added!", Toast.LENGTH_SHORT).show();
+                databaseReference.child(key).child("radius").setValue(radius);
+            }
+        });
+
     }
 
     public void deleteCircle(){

@@ -139,12 +139,6 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
             geofenceArea.clear();
         }
 
-        for(MyLatLng myLatLng : latLngs)
-        {
-            LatLng convert = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
-            geofenceArea.add(convert);
-        }
-
         if(geoQueryList != null && !geoQueryList.isEmpty()){
             Log.d(TAG, "geoQuery list check before remove" + geoQueryList);
             for(GeoQuery geoQuery : geoQueryList){
@@ -153,8 +147,19 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
             geoQueryList.clear();
         }
 
-        Log.d(TAG, "geo-fence list size : " + geofenceArea.size() );
+        for(MyLatLng myLatLng : latLngs)
+        {
+            //LatLng convert = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
+            //geofenceArea.add(convert);
+            geoQuery = geoFire.queryAtLocation(new GeoLocation(myLatLng.getLatitude(), myLatLng.getLongitude()), myLatLng.getRadius());
+            geoQuery.addGeoQueryEventListener(FirebaseService.this);
+            geoQueryList.add(geoQuery);
+            Log.d(TAG, "geoQuery list check" + geoQueryList);
+            Log.d(TAG, "geo-fence details : " + "Lat :"+myLatLng.getLatitude()+ " lng :" + myLatLng.getLongitude()+" radius : "+myLatLng.getRadius());
+        }
 
+        Log.d(TAG, "geo-fence list size : " + geofenceArea.size() );
+/*
         for(LatLng latLng1 : geofenceArea){
             // creates a new query around the location
             geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude, latLng1.longitude), 0.2);
@@ -162,6 +167,8 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
             geoQueryList.add(geoQuery);
             Log.d(TAG, "geoQuery list check" + geoQueryList);
         }
+
+ */
     }
 
     @Override
