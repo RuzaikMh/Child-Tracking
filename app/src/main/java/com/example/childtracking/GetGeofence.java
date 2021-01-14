@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.maps.model.LatLng;
@@ -34,9 +35,7 @@ public class GetGeofence extends AppCompatActivity {
     private ListView myListView;
     private IOnLoadLocationListener listener;
     private ArrayAdapter<LatLng> arrayAdapter;
-    private String uid,DefaultTracker;
-    private FirebaseFirestore firebaseFirestore;
-    private DocumentReference documentReference;
+    private String DefaultTracker;
     private DatabaseReference databaseReference;
 
     @Override
@@ -51,9 +50,9 @@ public class GetGeofence extends AppCompatActivity {
     }
 
     public void getData(){
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        firebaseFirestore = FirebaseFirestore.getInstance();
-        documentReference = firebaseFirestore.collection("users").document(uid);
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+        DocumentReference documentReference = firebaseFirestore.collection("users").document(uid);
         documentReference.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
@@ -70,6 +69,7 @@ public class GetGeofence extends AppCompatActivity {
                                     {
                                         MyLatLng latLng = locationSnapshot.getValue(MyLatLng.class);
                                         latLngList.add(latLng);
+                                        Log.d(TAG, "keys: " + locationSnapshot.getKey());
                                     }
                                     onLoadLocationSuccess(latLngList);
                                 }
@@ -92,17 +92,20 @@ public class GetGeofence extends AppCompatActivity {
             LatLng convert = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
             dangerousArea1.add(convert);
             arrayAdapter.notifyDataSetChanged();
-            Log.d(TAG, "onLoadLocationSuccess: LOOk1" + dangerousArea1);
         }
 
     }
 
     public void btnDelete(View view){
-        FirebaseDatabase.getInstance()
-                .getReference("DangerousArea")
-                .child("Locations")
-                .removeValue();
-        arrayAdapter.clear();
-        getData();
+        if(DefaultTracker != null) {
+            FirebaseDatabase.getInstance()
+                    .getReference("Tracker/deviceId/"+ DefaultTracker)
+                    .child("Geo-fence areas")
+                    .removeValue();
+            arrayAdapter.clear();
+            getData();
+        }else{
+            Toast.makeText(this, "Wait until data loads", Toast.LENGTH_SHORT).show();
+        }
     }
 }

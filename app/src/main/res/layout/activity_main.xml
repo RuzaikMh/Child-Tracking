@@ -41,10 +41,10 @@
             <ImageView
                 android:clickable="true"
                 android:id="@+id/imageView4"
-                android:layout_width="62dp"
-                android:layout_height="62dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:layout_alignParentRight="true"
-                app:srcCompat="@drawable/user"
+                app:srcCompat="@drawable/exit1"
                 android:focusable="true" />
         </RelativeLayout>
 

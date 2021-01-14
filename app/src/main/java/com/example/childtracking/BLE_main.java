@@ -66,10 +66,7 @@ public class BLE_main extends AppCompatActivity{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_b_l_e_main);
 
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Toast.makeText(this, "BLE not supported", Toast.LENGTH_SHORT).show();
-            finish();
-        }
+
         mHandler = new Handler();
 
         mBTStateUpdateReceiver = new BroadcastReceiver_BTState(getApplicationContext());
@@ -77,7 +74,12 @@ public class BLE_main extends AppCompatActivity{
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
-        mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(this, "BLE not supported", Toast.LENGTH_SHORT).show();
+            finish();
+        }else {
+            mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
+        }
 
         mBTDevicesHashMap = new HashMap<>();
         mBTDevicesArrayList = new ArrayList<>();

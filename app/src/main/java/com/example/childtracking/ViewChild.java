@@ -46,7 +46,7 @@ public class ViewChild extends AppCompatActivity {
 
         Mdefault = findViewById(R.id.MakeDefaultBtn);
         listView = findViewById(R.id.ChidList);
-        txtDefault = findViewById(R.id.textView7);
+        txtDefault = findViewById(R.id.welcomeMsg2);
 
         uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         rootRef = FirebaseFirestore.getInstance();
@@ -59,7 +59,7 @@ public class ViewChild extends AppCompatActivity {
                     DocumentSnapshot document = task.getResult();
                     data = (List<String>) document.get("Tracker IDs");
                     Default = (String) document.get("Default TrackerID");
-                    txtDefault.setText(Default);
+                    txtDefault.setText("Current Default Tracker ID : "+Default);
                     Log.d(TAG, "data here : " + data);
 
                     arrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1,data);
@@ -111,7 +111,7 @@ public class ViewChild extends AppCompatActivity {
                                     @Override
                                     public void onSuccess(Void aVoid) {
                                         Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
-                                        txtDefault.setText(selectedItem);
+                                        txtDefault.setText("Current Default Tracker ID : "+selectedItem);
 
                                         Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
                                         stopService(serviceIntent);

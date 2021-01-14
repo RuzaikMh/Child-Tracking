@@ -50,7 +50,8 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
     private GeoQuery geoQuery;
     String uid,DefaultTracker;
     FirebaseFirestore rootRef;
-    DocumentReference uidRef;
+    DatabaseReference geoFence,fallDetect,location;
+    ValueEventListener geoFenceListener,fallDetectListener,locationListener;
     DatabaseReference myLocationRef;
     GeoFire geoFire;
 
@@ -86,8 +87,8 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
         });
 
         listener = this;
-        FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker).child("Geo-fence areas")
-                .addValueEventListener(new ValueEventListener() {
+        geoFence = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker).child("Geo-fence areas");
+               geoFenceListener = geoFence.addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         //update the dangerous area list
@@ -107,16 +108,14 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
                     }
                 });
 
-
-        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker");
-        databaseReference.addValueEventListener(new ValueEventListener() {
+        fallDetect = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker);
+         fallDetectListener = fallDetect.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                String status = dataSnapshot.child("deviceId/"+DefaultTracker+"/fall").getValue(String.class);
-                Log.d(TAG, "onDataChange: " + status);
+                String status = dataSnapshot.child("fall").getValue(String.class);
                 if(status != null) {
                     if (status.equals("true")) {
-                        sendNotification("Your Child Felled", "the system detected a fall");
+                        sendNotification("Child " + DefaultTracker + " Fell" , "the system detected a fall");
                     }
                 }
             }
@@ -135,10 +134,6 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
 
     @Override
     public void onLoadLocationSuccess(List<MyLatLng> latLngs) {
-        if(geofenceArea != null && !geofenceArea.isEmpty()){
-            geofenceArea.clear();
-        }
-
         if(geoQueryList != null && !geoQueryList.isEmpty()){
             Log.d(TAG, "geoQuery list check before remove" + geoQueryList);
             for(GeoQuery geoQuery : geoQueryList){
@@ -149,26 +144,12 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
 
         for(MyLatLng myLatLng : latLngs)
         {
-            //LatLng convert = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
-            //geofenceArea.add(convert);
             geoQuery = geoFire.queryAtLocation(new GeoLocation(myLatLng.getLatitude(), myLatLng.getLongitude()), myLatLng.getRadius());
             geoQuery.addGeoQueryEventListener(FirebaseService.this);
             geoQueryList.add(geoQuery);
             Log.d(TAG, "geoQuery list check" + geoQueryList);
             Log.d(TAG, "geo-fence details : " + "Lat :"+myLatLng.getLatitude()+ " lng :" + myLatLng.getLongitude()+" radius : "+myLatLng.getRadius());
         }
-
-        Log.d(TAG, "geo-fence list size : " + geofenceArea.size() );
-/*
-        for(LatLng latLng1 : geofenceArea){
-            // creates a new query around the location
-            geoQuery = geoFire.queryAtLocation(new GeoLocation(latLng1.latitude, latLng1.longitude), 0.2);
-            geoQuery.addGeoQueryEventListener(FirebaseService.this);
-            geoQueryList.add(geoQuery);
-            Log.d(TAG, "geoQuery list check" + geoQueryList);
-        }
-
- */
     }
 
     @Override
@@ -206,8 +187,8 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
     }
 
     private void readTrackerLocation(final firebaseCallBack firebaseCallBack){
-        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+DefaultTracker);
-        databaseReference.addValueEventListener(new ValueEventListener() {
+        location = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+DefaultTracker);
+        locationListener = location.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 Double latitude = snapshot.child("latitude").getValue(Double.class);
@@ -235,6 +216,9 @@ public class FirebaseService extends Service  implements IOnLoadLocationListener
             geoQueryList.clear();
         }
 
+        geoFence.removeEventListener(geoFenceListener);
+        fallDetect.removeEventListener(fallDetectListener);
+        location.removeEventListener(locationListener);
     }
 
     @Nullable

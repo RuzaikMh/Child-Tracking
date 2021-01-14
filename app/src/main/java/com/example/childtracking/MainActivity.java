@@ -4,6 +4,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
+
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -41,6 +44,9 @@ public class MainActivity extends AppCompatActivity {
         setSingleEvent(mainGrid);
         welcome = findViewById(R.id.welcomeMsg);
         profile = findViewById(R.id.imageView4);
+
+        Intent stopService = new Intent(getApplicationContext(), FirebaseService.class);
+        stopService(stopService);
 
         loadDataOnCreate();
 
