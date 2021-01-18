@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mainGrid = (GridLayout) findViewById(R.id.mainGrid);
+        mainGrid = findViewById(R.id.mainGrid);
         setSingleEvent(mainGrid);
         welcome = findViewById(R.id.welcomeMsg);
         profile = findViewById(R.id.imageView4);
@@ -147,6 +147,9 @@ public class MainActivity extends AppCompatActivity {
                     {
                         startActivity(new Intent(getApplicationContext(),SettingsActivity.class));
                     }
+                    else if(id == 7){
+                        startActivity(new Intent(getApplicationContext(),test.class));
+                    }
 
                 }
             });
@@ -156,12 +159,6 @@ public class MainActivity extends AppCompatActivity {
     public void onResume() {
 
         super.onResume();
-
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        String syncInterval = sharedPreferences.getString("sync_interval","5000");
-        double interval =  Double.parseDouble(syncInterval);
-        boolean syncLocation = sharedPreferences.getBoolean("perform_sync",true);
-
         loadDataOnResume();
     }
 }

@@ -1,7 +1,4 @@
 package com.example.childtracking;
-
-import com.google.android.gms.maps.model.LatLng;
-
 import java.util.List;
 
 public interface IOnLoadLocationListener {

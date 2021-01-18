@@ -1,6 +1,9 @@
 package com.example.childtracking;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
+
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -56,30 +59,47 @@ public class trackingHistroy extends FragmentActivity implements OnMapReadyCallb
         deleteView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                getDefault(new firebaseCallback() {
-                    @Override
-                    public void onCallback(String tracker) {
-                        String url = "https://childgps.000webhostapp.com/DeleteHistory.php?trackerID=" + tracker;
 
-                        StringRequest request = new StringRequest(Request.Method.GET, url,
-                                new Response.Listener<String>() {
-                                    @Override
-                                    public void onResponse(String response) {
-                                        Toast.makeText(trackingHistroy.this, response, Toast.LENGTH_SHORT).show();
-                                        if(response.equals("Tracking history deleted successfully")){
-                                            mMap.clear();
-                                        }
-                                    }
-                                }, new Response.ErrorListener() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(trackingHistroy.this);
+                builder.setTitle("Do you want clear all history related to this tracker")
+                        .setNegativeButton("No", new DialogInterface.OnClickListener() {
                             @Override
-                            public void onErrorResponse(VolleyError error) {
-                                Toast.makeText(trackingHistroy.this, error.getMessage(), Toast.LENGTH_SHORT).show();
+                            public void onClick(DialogInterface dialogInterface, int i) {
+
+                            }
+                        })
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                getDefault(new firebaseCallback() {
+                                    @Override
+                                    public void onCallback(String tracker) {
+                                        String url = "https://childgps.000webhostapp.com/DeleteHistory.php?trackerID=" + tracker;
+
+                                        StringRequest request = new StringRequest(Request.Method.GET, url,
+                                                new Response.Listener<String>() {
+                                                    @Override
+                                                    public void onResponse(String response) {
+                                                        Toast.makeText(trackingHistroy.this, response, Toast.LENGTH_SHORT).show();
+                                                        if(response.equals("Tracking history deleted successfully")){
+                                                            mMap.clear();
+                                                        }
+                                                    }
+                                                }, new Response.ErrorListener() {
+                                            @Override
+                                            public void onErrorResponse(VolleyError error) {
+                                                Toast.makeText(trackingHistroy.this, error.getMessage(), Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+
+                                        Volley.newRequestQueue(getApplicationContext()).add(request);
+                                    }
+                                });
                             }
                         });
+                AlertDialog dialog = builder.create();
+                dialog.show();
 
-                        Volley.newRequestQueue(getApplicationContext()).add(request);
-                    }
-                });
             }
         });
     }

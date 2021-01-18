@@ -5,6 +5,8 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.preference.PreferenceManager;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -39,10 +41,14 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.Toast;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -65,8 +71,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     Circle circle;
     private List<Circle> geoCircle;
-    private float GEOFENCE_RADIUS = 200;
-    public List<LatLng> dangerousArea = new ArrayList<>();
     private IOnLoadLocationListener listener;
     SupportMapFragment mapFragment;
     String radiusMeter,uid,DefaultTracker,tracker;
@@ -81,7 +85,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_live_location);
 
         Intent intent = getIntent();
@@ -90,7 +93,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
-        mCustomButton = (ImageView) findViewById(R.id.custom_button);
+        mCustomButton = findViewById(R.id.custom_button);
         mCustomButton.setClickable(true);
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -98,7 +101,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         radiusMeter = sharedPreferences.getString("radiusMeters","0.2");
-        GEOFENCE_RADIUS = Float.parseFloat(radiusMeter) * 1000;
         radius = Double.parseDouble(radiusMeter);
     }
 
@@ -193,7 +195,6 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         Toast.makeText(this, ""+message, Toast.LENGTH_SHORT).show();
     }
 
-
     private interface firebaseCallback{
         void onCallback(double longitude, double latitude);
     }
@@ -234,20 +235,48 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
-    public void onMapLongClick(LatLng latLng) {
-        LatLng add = new LatLng(latLng.latitude,latLng.longitude);
+    public void onMapLongClick(final LatLng latLng) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
-        databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker).child("Geo-fence areas");
-        final String key = databaseReference.push().getKey();
+        LayoutInflater layoutInflater = this.getLayoutInflater();
+        View view = layoutInflater.inflate(R.layout.layout_dialog,null);
+        final EditText geoName = view.findViewById(R.id.editTxtGeo);
 
-        databaseReference.child(key).setValue(add).addOnCompleteListener(new OnCompleteListener<Void>() {
-            @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                Toast.makeText(LiveLocation.this, "New geo-fence Added!", Toast.LENGTH_SHORT).show();
-                databaseReference.child(key).child("radius").setValue(radius);
-            }
-        });
+        builder.setView(view)
+                .setTitle("Enter Geo-fence name")
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
 
+                    }
+                })
+                .setPositiveButton("Save", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        final String geoFenceName = geoName.getText().toString().trim();
+
+                        if(geoFenceName.isEmpty()){
+                            Toast.makeText(LiveLocation.this, "Geo-fence not added name empty", Toast.LENGTH_SHORT).show();
+                        }else {
+                            LatLng add = new LatLng(latLng.latitude,latLng.longitude);
+
+                            databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker).child("Geo-fence areas");
+                            final String key = databaseReference.push().getKey();
+
+                            databaseReference.child(key).setValue(add).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Void> task) {
+                                    Toast.makeText(LiveLocation.this, "New geo-fence Added!", Toast.LENGTH_SHORT).show();
+                                    databaseReference.child(key).child("radius").setValue(radius);
+                                    databaseReference.child(key).child("name").setValue(geoFenceName);
+                                }
+                            });
+                        }
+                    }
+                });
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
     }
 
     public void deleteCircle(){

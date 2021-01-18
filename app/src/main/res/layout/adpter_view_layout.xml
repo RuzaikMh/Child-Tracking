@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:weightSum="100">
+
+
+    <TextView
+        android:id="@+id/txtGeoName"
+        android:layout_width="wrap_content"
+        android:layout_height="42dp"
+        android:layout_weight="50"
+        android:textSize="20sp"
+        android:text="TextView" />
+
+    <TextView
+        android:id="@+id/txtGeoRadius"
+        android:layout_width="wrap_content"
+        android:layout_height="42dp"
+        android:layout_weight="45"
+        android:textSize="20sp"
+        android:text="TextView" />
+
+    <TextView
+        android:id="@+id/txtGeoRef"
+        android:layout_width="10dp"
+        android:layout_height="42dp"
+        android:layout_weight="5"
+        android:text="TextView"
+        android:visibility="invisible"
+        />
+
+</LinearLayout>

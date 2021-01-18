@@ -4,16 +4,18 @@ public class MyLatLng {
     private  double latitude;
     private  double longitude;
     private double radius;
-
-    public double getRadius() {
-        return radius;
-    }
-
-    public void setRadius(double radius) {
-        this.radius = radius;
-    }
+    private String name;
+    private String geoFenceKey;
 
     public MyLatLng() {
+    }
+
+    public String getGeoFenceKey() {
+        return geoFenceKey;
+    }
+
+    public void setGeoFenceKey(String geoFenceKey) {
+        this.geoFenceKey = geoFenceKey;
     }
 
     public double getLatitude() {
@@ -30,5 +32,21 @@ public class MyLatLng {
 
     public void setLongitude(double longitude) {
         this.longitude = longitude;
+    }
+
+    public double getRadius() {
+        return radius;
+    }
+
+    public void setRadius(double radius) {
+        this.radius = radius;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

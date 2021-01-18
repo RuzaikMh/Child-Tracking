@@ -41,15 +41,13 @@ import androidx.core.app.NotificationCompat;
 
 import static  com.example.childtracking.App.CHANNEL_ID;
 
-public class FirebaseService extends Service  implements IOnLoadLocationListener, GeoQueryEventListener {
+public class FirebaseService extends Service implements IOnLoadLocationListener, GeoQueryEventListener {
 
     private static final String TAG = "service";
     private IOnLoadLocationListener listener;
-    private List<LatLng> geofenceArea = new ArrayList<>();
     private List<GeoQuery> geoQueryList = new ArrayList<>();
     private GeoQuery geoQuery;
-    String uid,DefaultTracker;
-    FirebaseFirestore rootRef;
+    String DefaultTracker;
     DatabaseReference geoFence,fallDetect,location;
     ValueEventListener geoFenceListener,fallDetectListener,locationListener;
     DatabaseReference myLocationRef;

@@ -65,10 +65,6 @@ public class ViewChild extends AppCompatActivity {
                     arrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1,data);
                     listView.setAdapter(arrayAdapter);
                     listView.setChoiceMode(AbsListView.CHOICE_MODE_SINGLE);
-
-                    if (data == null) {
-                        openDialog();
-                    }
                 }
             }
         });
@@ -86,11 +82,6 @@ public class ViewChild extends AppCompatActivity {
 
             }
         });
-    }
-
-    public void openDialog(){
-        Dialog newDialog = new Dialog();
-        newDialog.show(getSupportFragmentManager(),"Dialog");
     }
 
     public void makeDefault(View view){
