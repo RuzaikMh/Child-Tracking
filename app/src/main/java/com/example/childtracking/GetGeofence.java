@@ -3,7 +3,6 @@ package com.example.childtracking;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,13 +23,13 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
+import java.util.List;
 
 
 public class GetGeofence extends AppCompatActivity {
 
     private static final String TAG = "GetGeofence";
     private ListView myListView;
-    private ArrayList<MyLatLng> geoList = new ArrayList<>();
     private Button delete;
 
     @Override
@@ -43,13 +42,17 @@ public class GetGeofence extends AppCompatActivity {
 
         getData(new firebaseCallBack() {
             @Override
-            public void onCallback(ArrayList<MyLatLng> myLatLngArrayList, final String Tracker) {
-                final geoListAdapter adapter = new geoListAdapter(getApplicationContext(),R.layout.adpter_view_layout,myLatLngArrayList);
+            public void onCallback(List<MyLatLng> myLatLngArrayList, final String Tracker) {
+
+                final geoListAdapter adapter = new geoListAdapter(getApplicationContext(),
+                        R.layout.adpter_view_layout,myLatLngArrayList);
+
                 myListView.setAdapter(adapter);
 
                 myListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
                     @Override
                     public boolean onItemLongClick(AdapterView<?> adapterView, final View view, int i, long l) {
+
                         AlertDialog.Builder builder = new AlertDialog.Builder(GetGeofence.this);
                         builder.setTitle("Do you want to remove this geo-fence")
                                 .setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -75,6 +78,7 @@ public class GetGeofence extends AppCompatActivity {
                         alertDialog.show();
 
                         return true;
+                        //means that the event is consumed. It is handled. No other click events will be notified.
                     }
                 });
 
@@ -93,9 +97,11 @@ public class GetGeofence extends AppCompatActivity {
     }
 
     public void getData(final firebaseCallBack firebaseCallBack){
+
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
         DocumentReference documentReference = firebaseFirestore.collection("users").document(uid);
+
         documentReference.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DocumentSnapshot> task) {
@@ -107,7 +113,7 @@ public class GetGeofence extends AppCompatActivity {
                             .addValueEventListener(new ValueEventListener() {
                                 @Override
                                 public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                    ArrayList<MyLatLng> latLngList = new ArrayList<>();
+                                    List<MyLatLng> latLngList = new ArrayList<>();
                                     for(DataSnapshot locationSnapshot : snapshot.getChildren())
                                     {
                                         MyLatLng latLng = locationSnapshot.getValue(MyLatLng.class);
@@ -130,6 +136,6 @@ public class GetGeofence extends AppCompatActivity {
     }
 
     private interface firebaseCallBack{
-        void onCallback(ArrayList<MyLatLng> myLatLngArrayList, String Tracker);
+        void onCallback(List<MyLatLng> myLatLngArrayList, String Tracker);
     }
 }

@@ -8,7 +8,7 @@
     tools:context=".AddTracker">
 
     <Button
-        android:id="@+id/txtview"
+        android:id="@+id/btnView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -21,7 +21,7 @@
         android:textAllCaps="false"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtAdd" />
+        app:layout_constraintTop_toBottomOf="@+id/btnAdd" />
 
     <EditText
         android:id="@+id/trackerIDtxt"
@@ -66,7 +66,7 @@
         app:layout_constraintTop_toBottomOf="@+id/trackerIDtxt" />
 
     <Button
-        android:id="@+id/txtAdd"
+        android:id="@+id/btnAdd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"

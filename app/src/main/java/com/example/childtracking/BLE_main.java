@@ -1,5 +1,6 @@
 package com.example.childtracking;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -20,7 +21,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -44,20 +44,15 @@ public class BLE_main extends AppCompatActivity{
 
     public static final int REQUEST_ENABLE_BT = 1;
     private static final String TAG = "BLE Main";
-
     private HashMap<String, BTLE_Device> mBTDevicesHashMap;
-    private ArrayList<BTLE_Device> mBTDevicesArrayList;
     private TextView RssiTextView, DistanceTextView;
     private RippleBackground rippleBackground;
     private BroadcastReceiver_BTState mBTStateUpdateReceiver;
     private BluetoothAdapter mBluetoothAdapter;
     private boolean mScanning;
     private Handler mHandler;
-    private BluetoothLeScanner mLEScanner;
+    private BluetoothLeScanner bluetoothLeScanner;
     private List<ScanFilter> filters = new ArrayList<>();
-    private String uid;
-    private FirebaseFirestore rootRef;
-    private DocumentReference uidRef;
     private String beaconID;
     private String DefaultTracker;
 
@@ -65,7 +60,6 @@ public class BLE_main extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_b_l_e_main);
-
 
         mHandler = new Handler();
 
@@ -78,13 +72,12 @@ public class BLE_main extends AppCompatActivity{
             Toast.makeText(this, "BLE not supported", Toast.LENGTH_SHORT).show();
             finish();
         }else {
-            mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
+            bluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
         }
 
         mBTDevicesHashMap = new HashMap<>();
-        mBTDevicesArrayList = new ArrayList<>();
-        rippleBackground = (RippleBackground)findViewById(R.id.content);
 
+        rippleBackground = findViewById(R.id.content);
         RssiTextView = findViewById(R.id.textView6);
         DistanceTextView = findViewById(R.id.textView5);
     }
@@ -121,38 +114,48 @@ public class BLE_main extends AppCompatActivity{
         return mScanning;
     }
 
-    public void stop() {
-        scanLeDevice(false);
+    public void ScanClicked(View view){
+        if (!isScanning()) {
+            startScan();
+        } else {
+            stopScan();
+            Toast.makeText(this, "Scan Stopped", Toast.LENGTH_SHORT).show();
+        }
     }
 
-    public void start() {
+    public void startScan(){
+        mBTDevicesHashMap.clear();
+
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, BLE_main.REQUEST_ENABLE_BT);
-            stopRippleAnimation();
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         } else {
+            rippleBackground.startRippleAnimation();
             scanLeDevice(true);
         }
     }
 
-    // Called Back when the started activity returns a result
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // Check which request we're responding to
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_ENABLE_BT) {
-            // Make sure the request was successful
-            if (resultCode == RESULT_OK) {
-                //Toast.makeText(this, "bluetooth enabled", Toast.LENGTH_SHORT).show();
-            } else if (resultCode == RESULT_CANCELED) {
-                Toast.makeText(this, "error: turning on bluetooth", Toast.LENGTH_SHORT).show();
+
+        if(requestCode == REQUEST_ENABLE_BT){
+            if(resultCode == RESULT_OK){
+                startScan();
+            } else if(resultCode == RESULT_CANCELED){
+                Toast.makeText(this, "Scan Canceled", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
+    public void stopScan() {
+        rippleBackground.stopRippleAnimation();
+        scanLeDevice(false);
+    }
+
     private void scanLeDevice(final boolean enable) {
-        if(mLEScanner == null && mBluetoothAdapter != null){
-            mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
+        if(bluetoothLeScanner == null && mBluetoothAdapter != null){
+            bluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
         }
 
         if (enable && !mScanning) {
@@ -171,25 +174,25 @@ public class BLE_main extends AppCompatActivity{
             readData(new FirestoreCallback() {
                 @Override
                 public void onCallback(String id) {
-                    UUID beaconUUID = UUID.fromString(id);
                     mScanning = true;
+                    UUID beaconUUID = UUID.fromString(id);
                     ScanFilter filter = new ScanFilter.Builder().setServiceUuid(new ParcelUuid(beaconUUID)).build();
                     filters.add(filter);
                     ScanSettings settings = new ScanSettings.Builder()
                             .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                             .build();
 
-                    mLEScanner.startScan(filters,settings,mLeScanCallback);
+                    bluetoothLeScanner.startScan(filters,settings,mLeScanCallback);
                 }
             });
 
         } else {
             mScanning = false;
-            if(mLEScanner != null)
-            mLEScanner.stopScan(mLeScanCallback);
+            if(bluetoothLeScanner != null && mBluetoothAdapter != null) {
+                bluetoothLeScanner.stopScan(mLeScanCallback);
+            }
         }
     }
-
 
     private ScanCallback mLeScanCallback = new ScanCallback() {
         @Override
@@ -201,16 +204,6 @@ public class BLE_main extends AppCompatActivity{
         }
     };
 
-    public void ScanClicked(View view){
-        if (!isScanning()) {
-            startScan();
-            Toast.makeText(this, "Scan Started", Toast.LENGTH_SHORT).show();
-        } else {
-            stopScan();
-            Toast.makeText(this, "Scan Stopped", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     public void addDevice(BluetoothDevice device, int rssi) {
 
         String address = device.getAddress();
@@ -220,36 +213,17 @@ public class BLE_main extends AppCompatActivity{
             btleDevice.setDistnace(calculateDistance(rssi));
 
             mBTDevicesHashMap.put(address, btleDevice);
-            mBTDevicesArrayList.add(btleDevice);
         }
         else {
             mBTDevicesHashMap.get(address).setRSSI(rssi);
             mBTDevicesHashMap.get(address).setDistnace(calculateDistance(rssi));
         }
 
-        BTLE_Device devices = mBTDevicesArrayList.get(0);
-
-        int BLErssi = devices.getRSSI();
-        double distance = devices.getDistnace();
+        int BLErssi = btleDevice.getRSSI();
+        double distance = btleDevice.getDistnace();
 
         RssiTextView.setText(Integer.toString(BLErssi));
-        DistanceTextView.setText(Double.toString(round(distance,2)) + "M");
-    }
-
-    public void startScan(){
-        rippleBackground.startRippleAnimation();
-        mBTDevicesArrayList.clear();
-        mBTDevicesHashMap.clear();
-        start();
-    }
-
-    public void stopScan() {
-        rippleBackground.stopRippleAnimation();
-        stop();
-    }
-
-    public void stopRippleAnimation(){
-        rippleBackground.stopRippleAnimation();
+        DistanceTextView.setText(round(distance, 2) + "M");
     }
 
     public double calculateDistance(int rssi) {
@@ -279,9 +253,9 @@ public class BLE_main extends AppCompatActivity{
     }
 
     public void readData(final FirestoreCallback firestoreCallback){
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        rootRef = FirebaseFirestore.getInstance();
-        uidRef = rootRef.collection("users").document(uid);
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore rootRef = FirebaseFirestore.getInstance();
+        DocumentReference uidRef = rootRef.collection("users").document(uid);
 
         uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override

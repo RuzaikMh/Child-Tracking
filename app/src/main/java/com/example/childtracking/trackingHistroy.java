@@ -3,6 +3,7 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
@@ -99,7 +100,6 @@ public class trackingHistroy extends FragmentActivity implements OnMapReadyCallb
                         });
                 AlertDialog dialog = builder.create();
                 dialog.show();
-
             }
         });
     }
@@ -123,22 +123,22 @@ public class trackingHistroy extends FragmentActivity implements OnMapReadyCallb
                             public void onResponse(String response) {
                                 try {
                                     //converting the string to json array object
-                                    JSONArray array = new JSONArray(response);
+                                    JSONArray jsonArray = new JSONArray(response);
 
                                     //traversing through all the object
-                                    for (int i = 0; i < array.length(); i++) {
+                                    for (int i = 0; i < jsonArray.length(); i++) {
 
                                         //getting tracker object from json array
-                                        JSONObject tracker = array.getJSONObject(i);
+                                        JSONObject jsonObject = jsonArray.getJSONObject(i);
 
                                         //adding the tracker to TrackerList list
                                         TrackerList.add(new History(
-                                                tracker.getInt("Id"),
-                                                tracker.getString("deviceID"),
-                                                tracker.getDouble("logitude"),
-                                                tracker.getDouble("latitude")
+                                                jsonObject.getInt("Id"),
+                                                jsonObject.getString("deviceID"),
+                                                jsonObject.getDouble("logitude"),
+                                                jsonObject.getDouble("latitude")
                                         ));
-                                        Log.d(TAG, "history: " + TrackerList.get(i).getLatitude() + TrackerList.get(i).getLongitude());
+
                                         if(TrackerList.get(i).getLongitude() != 0 && TrackerList.get(i).getLatitude() != 0) {
                                             latLng = new LatLng(TrackerList.get(i).getLatitude(), TrackerList.get(i).getLongitude());
                                             mMap.addMarker(new MarkerOptions()

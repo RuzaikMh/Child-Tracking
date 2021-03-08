@@ -27,24 +27,18 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.SetOptions;
-import com.google.firestore.v1.WriteResult;
-import java.util.HashMap;
+
 import java.util.List;
-import java.util.Map;
 
 public class AddTracker extends AppCompatActivity {
 
     private static final String TAG = "add tracker" ;
-    EditText ID,password,child;
-    String deviceID;
-    String pass;
-    String childName;
+    EditText ID,password;
+    String deviceID,pass,uid;
     ProgressBar progressBar;
     Button add;
-    String uid;
-    FirebaseFirestore rootRef;
-    DocumentReference uidRef;
+    FirebaseFirestore firebaseFirestore;
+    DocumentReference documentReference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,10 +46,8 @@ public class AddTracker extends AppCompatActivity {
         setContentView(R.layout.activity_add_tracker);
         ID = findViewById(R.id.trackerIDtxt);
         password= findViewById(R.id.passTxt);
-        //child = findViewById(R.id.editTextChild);
         progressBar = findViewById(R.id.progressBar3);
-        add = findViewById(R.id.txtAdd);
-
+        add = findViewById(R.id.btnAdd);
 
         add.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -88,24 +80,24 @@ public class AddTracker extends AppCompatActivity {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         if (dataSnapshot.hasChild(deviceID)) {
-                            String status = dataSnapshot.child(deviceID+"/password").getValue(String.class);
-                            if(pass.equals(status)){
+                            String trackerPassword = dataSnapshot.child(deviceID+"/password").getValue(String.class);
+                            if(pass.equals(trackerPassword)){
                                 uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                                rootRef = FirebaseFirestore.getInstance();
-                                uidRef = rootRef.collection("users").document(uid);
+                                firebaseFirestore = FirebaseFirestore.getInstance();
+                                documentReference = firebaseFirestore.collection("users").document(uid);
 
-                                uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                documentReference.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                                     @Override
                                     public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                                         if(task.isSuccessful()) {
-                                            DocumentSnapshot document = task.getResult();
-                                            List<String> data = (List<String>) document.get("Tracker IDs");
+                                            DocumentSnapshot documentSnapshot = task.getResult();
+                                            List<String> data = (List<String>) documentSnapshot.get("Tracker IDs");
 
                                             if (data != null && data.contains(deviceID)) {
                                                 progressBar.setVisibility(View.GONE);
                                                 Toast.makeText(AddTracker.this, "Child already added", Toast.LENGTH_SHORT).show();
                                             } else {
-                                                uidRef.update("Tracker IDs", FieldValue.arrayUnion(deviceID));
+                                                documentReference.update("Tracker IDs", FieldValue.arrayUnion(deviceID));
                                                 progressBar.setVisibility(View.GONE);
                                                 Toast.makeText(AddTracker.this, "Child added", Toast.LENGTH_SHORT).show();
                                             }

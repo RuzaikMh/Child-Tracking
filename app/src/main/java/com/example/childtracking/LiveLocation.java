@@ -7,15 +7,12 @@ import androidx.preference.PreferenceManager;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import com.firebase.geofire.GeoFire;
-import com.firebase.geofire.GeoQuery;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -28,7 +25,6 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -44,11 +40,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
-import android.widget.Spinner;
 import android.widget.Toast;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -61,7 +55,7 @@ import java.util.List;
 
 
 public class LiveLocation extends FragmentActivity implements OnMapReadyCallback,
-         GoogleMap.OnMapLongClickListener, IOnLoadLocationListener {
+        GoogleMap.OnMapLongClickListener {
 
     private static final String TAG = "LiveLocation";
     private static final int REQUEST_ENABLE_LOCATION = 12;
@@ -71,25 +65,19 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     Circle circle;
     private List<Circle> geoCircle;
-    private IOnLoadLocationListener listener;
     SupportMapFragment mapFragment;
-    String radiusMeter,uid,DefaultTracker,tracker;
+    String radiusMeter, uid, DefaultTracker;
     double radius;
-    FirebaseFirestore rootRef;
-    DocumentReference uidRef;
     FusedLocationProviderClient fusedLocationProviderClient;
     private boolean locationPermissionGranted;
     private Location lastKnownLocation;
-    private DatabaseReference databaseReference;
+    private DatabaseReference databaseReference, GeofenceRef, CurrentLocationRef;
+    private ValueEventListener GeofenceEvent, CurrentLocationEvent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_live_location);
-
-        Intent intent = getIntent();
-        DefaultTracker = intent.getStringExtra("defaultTracker");
-        Toast.makeText(this, "Default tracker is " + DefaultTracker, Toast.LENGTH_SHORT).show();
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -113,123 +101,123 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         mMap.getUiSettings().setCompassEnabled(true);
         setConrolsPositions();
 
-        readData(new firebaseCallback() {
-            @Override
-            public void onCallback(double longitude, double latitude) {
-
-            }
-        });
-
         getLocationPermission();
         updateLocationUI();
         getDeviceLocation();
 
-        mCustomButton.setOnClickListener(new View.OnClickListener() {
+        getDefaultTracker(new DefaultTrackerCallback() {
             @Override
-            public void onClick(View view) {
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+tracker);
-                databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+            public void onCallBack(final String defaultTracker) {
+                Toast.makeText(LiveLocation.this, "Default  Tracker is " + defaultTracker, Toast.LENGTH_SHORT).show();
+
+                loadGeofenceAreas(defaultTracker);
+
+                readTrackerLocation(defaultTracker);
+
+                mCustomButton.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        Double latitude = snapshot.child("latitude").getValue(Double.class);
-                        Double longitude = snapshot.child("logitude").getValue(Double.class);
-                        Log.d(TAG, "defalut here: " + tracker);
-                        CameraPosition position = new CameraPosition.Builder()
-                                .target(new LatLng(latitude,longitude)) // Sets the new camera position
-                                .zoom(15) // Sets the zoom
-                                .bearing(180) // Rotate the camera
-                                .tilt(30) // Set the camera tilt
-                                .build(); // Creates a CameraPosition from the builder
+                    public void onClick(View view) {
+                        DatabaseReference databaseReference = FirebaseDatabase.getInstance().
+                                getReference("Tracker/deviceId/"+defaultTracker);
+                        databaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                Double latitude = snapshot.child("latitude").getValue(Double.class);
+                                Double longitude = snapshot.child("logitude").getValue(Double.class);
 
-                        mMap.animateCamera(CameraUpdateFactory
-                                .newCameraPosition(position), 3000,null);
-                    }
+                                CameraPosition position = new CameraPosition.Builder()
+                                        .target(new LatLng(latitude,longitude)) // Sets the new camera position
+                                        .zoom(15) // Sets the zoom
+                                        .bearing(180) // Rotate the camera
+                                        .tilt(30) // Set the camera tilt
+                                        .build(); // Creates a CameraPosition from the builder
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
+                                mMap.animateCamera(CameraUpdateFactory
+                                        .newCameraPosition(position), 3000,null);
+                            }
 
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+
+                            }
+                        });
                     }
                 });
             }
         });
 
         mMap.setOnMapLongClickListener(this);
+    }
 
-        listener = this;
-        FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + DefaultTracker).child("Geo-fence areas")
-                .addValueEventListener(new ValueEventListener() {
+    private interface DefaultTrackerCallback{
+        void onCallBack(String defaultTracker);
+    }
+
+    private void getDefaultTracker(final DefaultTrackerCallback defaultTrackerCallback){
+        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+        DocumentReference documentReference = firebaseFirestore.collection("users").document(uid);
+        documentReference.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot documentSnapshot = task.getResult();
+                    DefaultTracker = documentSnapshot.getString("Default TrackerID");
+
+                    defaultTrackerCallback.onCallBack(DefaultTracker);
+                }
+            }
+        });
+    }
+
+    public void loadGeofenceAreas(String trackerId){
+       GeofenceRef =  FirebaseDatabase.getInstance().getReference("Tracker/deviceId/" + trackerId).child("Geo-fence areas");
+            GeofenceEvent = GeofenceRef.addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        //update the dangerous area list
                         List<MyLatLng> latLngList = new ArrayList<>();
                         for(DataSnapshot locationSnapshot : snapshot.getChildren())
                         {
                             MyLatLng latLng = locationSnapshot.getValue(MyLatLng.class);
                             latLngList.add(latLng);
                         }
-                        listener.onLoadLocationSuccess(latLngList);
+                        if(geoCircle != null) {
+                            deleteCircle();
+                        }
+
+                        for(MyLatLng myLatLng : latLngList)
+                        {
+                            LatLng latLng1 = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
+                            addCircle(latLng1, (float) myLatLng.getRadius() * 1000);
+                        }
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-                        listener.onLocationFailed(error.getMessage());
+                        Log.d(TAG, "onCancelled: " + error.getMessage());
                     }
                 });
     }
 
-    @Override
-    public void onLoadLocationSuccess(List<MyLatLng> latLngs) {
-        if(geoCircle != null) {
-            deleteCircle();
-        }
-
-        for(MyLatLng myLatLng : latLngs)
-        {
-            LatLng latLng1 = new LatLng(myLatLng.getLatitude(),myLatLng.getLongitude());
-            addCircle(latLng1, (float) myLatLng.getRadius() * 1000);
-        }
-    }
-
-    @Override
-    public void onLocationFailed(String message) {
-        Toast.makeText(this, ""+message, Toast.LENGTH_SHORT).show();
-    }
-
-    private interface firebaseCallback{
-        void onCallback(double longitude, double latitude);
-    }
-
-    private void readData(final firebaseCallback firebaseCallback){
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        rootRef = FirebaseFirestore.getInstance();
-        uidRef = rootRef.collection("users").document(uid);
-        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+    private void readTrackerLocation(String DefaultTrackerId){
+        CurrentLocationRef = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+DefaultTrackerId);
+            CurrentLocationEvent = CurrentLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                DocumentSnapshot document = task.getResult();
-                tracker = (String) document.get("Default TrackerID");
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                Double latitude = dataSnapshot.child("latitude").getValue(Double.class);
+                Double longitude = dataSnapshot.child("logitude").getValue(Double.class);
 
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tracker/deviceId/"+tracker);
-                databaseReference.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        Double latitude = dataSnapshot.child("latitude").getValue(Double.class);
-                        Double longitude = dataSnapshot.child("logitude").getValue(Double.class);
+                LatLng location = new LatLng(latitude, longitude);
+                if (marker != null) {
+                    marker.remove();
+                }
+                marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location")
+                        .icon(bitmapDescriptor(getApplicationContext(),R.drawable.ic_baseline_emoji_people_24)));
 
-                        LatLng location = new LatLng(latitude, longitude);
-                        if (marker != null) {
-                            marker.remove();
-                        }
-                        marker = mMap.addMarker(new MarkerOptions().position(location).title("Child Location")
-                                .icon(bitmapDescriptor(getApplicationContext(),R.drawable.ic_baseline_emoji_people_24)));
-
-                        firebaseCallback.onCallback(longitude,latitude);
-                    }
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError databaseError) {
-                        Log.d(TAG, "firebase callback error : " + databaseError);
-                    }
-                });
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.d(TAG, "firebase callback error : " + databaseError);
             }
         });
     }
@@ -237,7 +225,7 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapLongClick(final LatLng latLng) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-
+        //LayoutInflater takes an XML file as input and builds the View object from it
         LayoutInflater layoutInflater = this.getLayoutInflater();
         View view = layoutInflater.inflate(R.layout.layout_dialog,null);
         final EditText geoName = view.findViewById(R.id.editTxtGeo);
@@ -298,9 +286,19 @@ public class LiveLocation extends FragmentActivity implements OnMapReadyCallback
         circleOptions.radius(radius);
         circleOptions.strokeColor(Color.argb(255,255,0,0));
         circleOptions.fillColor(Color.argb(64,255,0,0));
-        circleOptions.strokeColor(4);
         circle = mMap.addCircle(circleOptions);
         geoCircle.add(circle);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(GeofenceEvent != null){
+            GeofenceRef.removeEventListener(GeofenceEvent);
+        }
+        if(CurrentLocationEvent != null){
+            CurrentLocationRef.removeEventListener(CurrentLocationEvent);
+        }
     }
 
     void setConrolsPositions() {

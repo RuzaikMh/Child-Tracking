@@ -22,4 +22,5 @@
     <string name="default_radius">0.2</string>
     <string name="CLIENT_CHARACTERISTIC_CONFIG">00002902-0000-1000-8000-00805f9b34fb"</string>
     <string name="title_activity_tracking_histroy">Map</string>
+    <string name="title_activity_test_map">Map</string>
 </resources>

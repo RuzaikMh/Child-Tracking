@@ -1,12 +1,11 @@
 package com.example.childtracking;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
@@ -28,15 +27,12 @@ import java.util.List;
 
 public class ViewChild extends AppCompatActivity {
 
-    private static final String TAG = "viewChild";
     Button Mdefault;
-    String uid;
-    FirebaseFirestore rootRef;
-    DocumentReference uidRef;
+    DocumentReference documentReference;
     ListView listView;
     List<String> data = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
-    String selectedItem,Default;
+    String selectedItem;
     TextView txtDefault;
 
     @Override
@@ -48,37 +44,28 @@ public class ViewChild extends AppCompatActivity {
         listView = findViewById(R.id.ChidList);
         txtDefault = findViewById(R.id.welcomeMsg2);
 
-        uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        rootRef = FirebaseFirestore.getInstance();
-        uidRef = rootRef.collection("users").document(uid);
-
-        uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+        readTrackerData(new firestoreCallBack() {
             @Override
-            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                if(task.isSuccessful()) {
-                    DocumentSnapshot document = task.getResult();
-                    data = (List<String>) document.get("Tracker IDs");
-                    Default = (String) document.get("Default TrackerID");
-                    txtDefault.setText("Current Default Tracker ID : "+Default);
-                    Log.d(TAG, "data here : " + data);
+            public void onCallBack(List<String> list, String Dtracker) {
 
-                    arrayAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1,data);
-                    listView.setAdapter(arrayAdapter);
-                    listView.setChoiceMode(AbsListView.CHOICE_MODE_SINGLE);
-                }
+            txtDefault.setText("Current Default Tracker ID : "+Dtracker);
+
+            arrayAdapter = new ArrayAdapter<>(getApplicationContext(), android.R.layout.simple_list_item_1, list);
+            listView.setAdapter(arrayAdapter);
+            listView.setChoiceMode(AbsListView.CHOICE_MODE_SINGLE);
             }
         });
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                for(int a = 0; a < adapterView.getChildCount(); a++)
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                for(int a = 0; a < parent.getChildCount(); a++)
                 {
-                    adapterView.getChildAt(a).setBackgroundColor(Color.TRANSPARENT);
+                    parent.getChildAt(a).setBackgroundColor(Color.TRANSPARENT);
                 }
 
                 view.setBackgroundColor(Color.rgb(70,93,202));
-                selectedItem = (String) listView.getItemAtPosition(i);
+                selectedItem = (String) listView.getItemAtPosition(position);
 
             }
         });
@@ -86,75 +73,73 @@ public class ViewChild extends AppCompatActivity {
 
     public void makeDefault(View view){
         if(selectedItem != null) {
-            uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            rootRef = FirebaseFirestore.getInstance();
-            uidRef = rootRef.collection("users").document(uid);
 
-            uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            readTrackerData(new firestoreCallBack() {
                 @Override
-                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                    if (task.isSuccessful()) {
-                        DocumentSnapshot document = task.getResult();
-                        final String data = document.getString("Default TrackerID");
-                        if (data != null) {
-                            if (!data.equals(selectedItem)) {
-                                uidRef.update("Default TrackerID", selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                    @Override
-                                    public void onSuccess(Void aVoid) {
-                                        Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
-                                        txtDefault.setText("Current Default Tracker ID : "+selectedItem);
+                public void onCallBack(List<String> list, String Dtracker) {
+                    if (!Dtracker.equals(selectedItem)) {
+                        documentReference.update("Default TrackerID", selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                            Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
+                            txtDefault.setText("Current Default Tracker ID : "+selectedItem);
 
-                                        Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
-                                        stopService(serviceIntent);
-                                        serviceIntent.putExtra("inputExtra", selectedItem);
-                                        ContextCompat.startForegroundService(getApplicationContext(), serviceIntent);
-                                    }
-                                });
-                            } else {
-                                Toast.makeText(ViewChild.this, "Already selected as default", Toast.LENGTH_SHORT).show();
+                            Intent serviceIntent = new Intent(getApplicationContext(), FirebaseService.class);
+                            stopService(serviceIntent);
+                            serviceIntent.putExtra("inputExtra", selectedItem);
+                            ContextCompat.startForegroundService(getApplicationContext(), serviceIntent);
                             }
-                        } else {
-                            uidRef.update("Default TrackerID", selectedItem).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void aVoid) {
-                                    Toast.makeText(ViewChild.this, "Default : " + selectedItem, Toast.LENGTH_SHORT).show();
-                                }
-                            });
-                        }
+                        });
+                    } else {
+                        Toast.makeText(ViewChild.this, "Already selected as default", Toast.LENGTH_SHORT).show();
                     }
                 }
             });
-        }else {
-            Toast.makeText(this, "Please Select an item", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Please Select an item", Toast.LENGTH_SHORT).show();
         }
     }
 
     public void delete(View view) {
         if (selectedItem != null) {
-            uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            rootRef = FirebaseFirestore.getInstance();
-            uidRef = rootRef.collection("users").document(uid);
 
-            uidRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            readTrackerData(new firestoreCallBack() {
                 @Override
-                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                    if (task.isSuccessful()) {
-                        DocumentSnapshot document = task.getResult();
-                        final String data1 = (String) document.get("Default TrackerID");
-                        if (data1 != null) {
-                            if (data1.equals(selectedItem)) {
-                                Toast.makeText(ViewChild.this, "You cannot delete default", Toast.LENGTH_SHORT).show();
-                            } else {
-                                uidRef.update("Tracker IDs", FieldValue.arrayRemove(selectedItem));
-                                finish();
-                                startActivity(getIntent());
-                            }
-                        }
+                public void onCallBack(List<String> list, String Dtracker) {
+                    if (Dtracker.equals(selectedItem)) {
+                        Toast.makeText(ViewChild.this, "You cannot delete default", Toast.LENGTH_SHORT).show();
+                    } else {
+                        documentReference.update("Tracker IDs", FieldValue.arrayRemove(selectedItem));
+                        finish();
+                        startActivity(getIntent());
                     }
                 }
             });
-        }else {
-            Toast.makeText(this, "Please Select an item", Toast.LENGTH_SHORT).show();
+        } else {
+                Toast.makeText(this, "Please Select an item", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private interface firestoreCallBack{
+        void onCallBack(List<String> list , String Dtracker);
+    }
+
+    private void readTrackerData(final firestoreCallBack firestoreCallBack){
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        documentReference = firestore.collection("users").document(uid);
+
+        documentReference.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot documentSnapshot = task.getResult();
+                    String id = documentSnapshot.getString("Default TrackerID");
+                    data = (List<String>) documentSnapshot.get("Tracker IDs");
+
+                    firestoreCallBack.onCallBack(data,id);
+                }
+            }
+        });
     }
 }
