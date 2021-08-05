@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Child Tracking</string>
+    <string name="app_name">Child GPS</string>
     <string name="title_activity_live_location">Map</string>
     <string name="title_activity_test">Map</string>
     <string name="title_activity_settings">SettingsActivity</string>
