@@ -4,3 +4,6 @@ System demonstration videos
   3. BLE Scanner - https://www.youtube.com/watch?v=9mDBZDg6tRQ
   4. Fall detection - https://www.youtube.com/watch?v=latziDIfPeQ
   5. Hardwear - https://www.youtube.com/watch?v=raRNVMrCvqU&ab_channel=RuzaikAhamed
+
+Screen Shots 
+  > https://drive.google.com/drive/folders/1pmdLzG_f5-mSX84ymGClWQpqILmSQjWA?usp=sharing
