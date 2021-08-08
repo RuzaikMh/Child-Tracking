@@ -5,5 +5,5 @@ System demonstration videos
   4. Fall detection - https://www.youtube.com/watch?v=RW8l1omE8_w&ab_channel=RuzaikAhamed
   5. Hardwear - https://www.youtube.com/watch?v=oQBOfPYgjC8&ab_channel=RuzaikAhamed
 
-Screenshot 
+Screenshots
   > https://drive.google.com/drive/folders/1pmdLzG_f5-mSX84ymGClWQpqILmSQjWA?usp=sharing
