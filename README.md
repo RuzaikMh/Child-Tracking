@@ -7,3 +7,6 @@ System demonstration videos
 
 Screenshots
   > https://drive.google.com/drive/folders/1pmdLzG_f5-mSX84ymGClWQpqILmSQjWA?usp=sharing
+
+Play Store
+  > https://play.google.com/store/apps/details?id=com.RuzaikMh.childtracking
