@@ -3,7 +3,7 @@ System demonstration videos
   2. Multiple tracker support and Tracking history - https://www.youtube.com/watch?v=2j_frj5ZU40&ab_channel=RuzaikAhamed
   3. BLE Scanner - https://www.youtube.com/watch?v=ZpFmFpbMwr8&ab_channel=RuzaikAhamed
   4. Fall detection - https://www.youtube.com/watch?v=RW8l1omE8_w&ab_channel=RuzaikAhamed
-  5. Hardwear - https://www.youtube.com/watch?v=oQBOfPYgjC8&ab_channel=RuzaikAhamed
+  5. Hardware - https://www.youtube.com/watch?v=oQBOfPYgjC8&ab_channel=RuzaikAhamed
 
 Screenshots
   > https://drive.google.com/drive/folders/1pmdLzG_f5-mSX84ymGClWQpqILmSQjWA?usp=sharing
