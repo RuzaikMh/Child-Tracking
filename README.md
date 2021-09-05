@@ -1,7 +1,7 @@
 # About
 
-> Parental control app that can track and monitor child activities.
-> Provide features like real-time tracking, fall detection, geo-fence, BLE scanner, multiple tracker support and tracking history.
+- Parental control app that can track and monitor child activities.
+- Provide features like real-time tracking, fall detection, geo-fence, BLE scanner, multiple tracker support and tracking history.
 
 # System demonstration videos
   1. Live Location and Geo-fence - https://www.youtube.com/watch?v=s_MIx6iVbx4&ab_channel=RuzaikAhamed
