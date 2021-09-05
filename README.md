@@ -18,7 +18,7 @@
 
 # Screenshots
 
-## Home
+### Home
 
 <img src="https://user-images.githubusercontent.com/43722260/132114475-9edbb2ca-8fc5-49d1-b7f9-2f18932e3885.jpg" width="300">
 
