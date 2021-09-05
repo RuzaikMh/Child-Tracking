@@ -1,6 +1,7 @@
 # About
 
 - Parental control app that can track and monitor child activities.
+- The system includes hardware component, android application and webserver.
 - Provide features like real-time tracking, fall detection, geo-fence, BLE scanner, multiple tracker support and tracking history.
 
 # System demonstration videos
