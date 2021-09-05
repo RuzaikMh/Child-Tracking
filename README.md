@@ -14,35 +14,35 @@ Screenshots
 
 > Home
 
-<img src="https://user-images.githubusercontent.com/43722260/132114475-9edbb2ca-8fc5-49d1-b7f9-2f18932e3885.jpg" width="600">
+<img src="https://user-images.githubusercontent.com/43722260/132114475-9edbb2ca-8fc5-49d1-b7f9-2f18932e3885.jpg" width="400">
 
 > Live Location and Create Geo-fence
 
-![live_location](https://user-images.githubusercontent.com/43722260/132114523-938d52a9-7a6d-4e91-b3c8-4c4de3260b0a.jpg)
+<img src="https://user-images.githubusercontent.com/43722260/132114523-938d52a9-7a6d-4e91-b3c8-4c4de3260b0a.jpg" width="400">
 
 > Manage Geo-fence
 
-![manage_geo_fence](https://user-images.githubusercontent.com/43722260/132114690-7fb4c8d9-56d9-4009-9e77-7f7e5a92aa6b.jpg)
+<img src="https://user-images.githubusercontent.com/43722260/132114690-7fb4c8d9-56d9-4009-9e77-7f7e5a92aa6b.jpg" width="400">
 
 > Fall Detection
 
-![fall_detection](https://user-images.githubusercontent.com/43722260/132114600-5c81418e-52c4-4a80-a662-37fd3f1e7eec.jpg)
+<img src="https://user-images.githubusercontent.com/43722260/132114600-5c81418e-52c4-4a80-a662-37fd3f1e7eec.jpg" width="400">
 
 > BLE Scanner
 
-![BLE](https://user-images.githubusercontent.com/43722260/132114641-50fab347-22e9-46b9-bcd2-dcae0051e0e2.jpg)
+<img src="https://user-images.githubusercontent.com/43722260/132114641-50fab347-22e9-46b9-bcd2-dcae0051e0e2.jpg" width="400">
 
 > Tracking History
 
-![history](https://user-images.githubusercontent.com/43722260/132114714-2167de02-bfe8-4f1b-bd55-45bbe70db168.jpg)
+<img src="https://user-images.githubusercontent.com/43722260/132114714-2167de02-bfe8-4f1b-bd55-45bbe70db168.jpg" width="400">
 
 > Add Tracker
 
-![add_child](https://user-images.githubusercontent.com/43722260/132114749-6d6af06f-9ca0-443c-9ad0-8433d67bb5fc.jpg)
+<img src="https://user-images.githubusercontent.com/43722260/132114749-6d6af06f-9ca0-443c-9ad0-8433d67bb5fc.jpg" width="400">
 
 > Manage Tracker
 
-![view_tracker](https://user-images.githubusercontent.com/43722260/132114773-b27cd3d0-fa72-4eed-a01b-56d80106cb85.jpg)
+<img src="https://user-images.githubusercontent.com/43722260/132114773-b27cd3d0-fa72-4eed-a01b-56d80106cb85.jpg" width="400">
 
 
 
